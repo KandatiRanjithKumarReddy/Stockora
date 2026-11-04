@@ -2,7 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { Search, Plus, Minus, Check, Gift, Percent, AlertCircle, ShoppingCart } from 'lucide-react';
+import { ProductImage } from '../../components/common/ProductImage';
+import {
+  Search,
+  Plus,
+  Minus,
+  Check,
+  Gift,
+  Percent,
+  AlertCircle,
+  ShoppingCart,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
 
 interface CatalogPageProps {
   onNavigate: (view: string) => void;
@@ -19,7 +31,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [steppers, setSteppers] = useState<{ [productId: string]: number }>({});
 
-  const { addToCart, cart } = useCart();
+  const { addToCart, cart, itemCount } = useCart();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -83,178 +95,237 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Top Header & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Wholesale FMCG Catalog
+    <div className="space-y-6 pb-20">
+      {/* Header & Search */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Wholesale Product Catalog
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             {user?.retailer?.storeName
-              ? `Authorized pricing for ${user.retailer.storeName}`
-              : 'Direct wholesale dealer prices with live case & pack breakdown'}
+              ? `Authorized dealer rates for ${user.retailer.storeName} • Prices shown excluding GST`
+              : 'Direct wholesale carton & per-pack dealer prices • All base rates exclude GST'}
           </p>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search biscuits, detergent, tea..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-dark-border bg-white dark:bg-dark-surface text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-brand-500 outline-none"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3.5 pointer-events-none" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search SKU, biscuit, tea..."
+              aria-label="Search catalog products"
+              className="form-input pl-10"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('ai-order')}
+            className="btn-secondary shrink-0"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Paste Order List</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="font-semibold text-slate-500 dark:text-slate-400 text-[11px] uppercase mr-1">
-          Category:
-        </span>
-        <button
-          onClick={() => setSelectedCategory('ALL')}
-          className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-            selectedCategory === 'ALL'
-              ? 'bg-brand-900 dark:bg-brand-600 text-white shadow-xs'
-              : 'bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-          }`}
-        >
-          All
-        </button>
-        {categories.map((cat) => (
+      {/* Filter Bar */}
+      <div className="surface-card p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-              selectedCategory === cat
-                ? 'bg-brand-900 dark:bg-brand-600 text-white shadow-xs'
-                : 'bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+            type="button"
+            onClick={() => setSelectedCategory('ALL')}
+            className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              selectedCategory === 'ALL'
+                ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold'
+                : 'bg-zinc-100 dark:bg-dark-elevated text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-dark-hover'
             }`}
           >
-            {cat}
+            All Categories
           </button>
-        ))}
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                selectedCategory === cat
+                  ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold'
+                  : 'bg-zinc-100 dark:bg-dark-elevated text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-dark-hover'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-        <div className="ml-auto flex items-center space-x-2">
-          <label className="flex items-center space-x-1.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+        <div className="flex flex-wrap items-center gap-3">
+          {brands.length > 0 && (
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              aria-label="Filter by brand"
+              className="min-h-[38px] px-3 py-1.5 text-base sm:text-sm rounded-lg border border-zinc-300 dark:border-dark-borderStrong bg-white dark:bg-dark-elevated text-zinc-800 dark:text-zinc-200 outline-none"
+            >
+              <option value="ALL">All Brands</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <label className="min-h-[38px] px-3 py-1.5 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={inStockOnly}
               onChange={(e) => setInStockOnly(e.target.checked)}
-              className="rounded text-brand-600 focus:ring-brand-500"
+              className="w-4 h-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
             />
             <span>In-Stock Only</span>
           </label>
         </div>
       </div>
 
-      {/* Product Cards Grid */}
+      {/* Product Grid */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-slate-400">
-          Loading Jabalpur product catalog...
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="surface-card overflow-hidden animate-pulse">
+              <div className="aspect-[4/3] w-full bg-zinc-100 dark:bg-dark-elevated" />
+              <div className="p-5 space-y-3">
+                <div className="h-3.5 w-1/3 bg-zinc-200 dark:bg-dark-hover rounded" />
+                <div className="h-5 w-3/4 bg-zinc-200 dark:bg-dark-hover rounded" />
+                <div className="h-16 w-full bg-zinc-100 dark:bg-dark-elevated rounded-lg" />
+                <div className="h-11 w-full bg-zinc-200 dark:bg-dark-hover rounded-lg" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : products.length === 0 ? (
-        <div className="py-16 text-center rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border">
-          <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            No FMCG products found
+        <div className="py-16 px-4 text-center surface-card space-y-3">
+          <AlertCircle className="w-8 h-8 text-zinc-400 mx-auto" />
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
+            No matching wholesale products
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Adjust your search term or reset the category and stock filters.
           </p>
-          <p className="text-xs text-slate-500">Try adjusting your search or category filters.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('ALL');
+              setSelectedBrand('ALL');
+              setSearch('');
+              setInStockOnly(false);
+            }}
+            className="btn-secondary mt-1"
+          >
+            Reset Filters
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map((p) => {
+          {products.map((p, idx) => {
             const inCart = getInCartCases(p._id);
             const isOutOfStock = p.stockStatus === 'OUT_OF_STOCK';
 
             return (
-              <div
+              <article
                 key={p._id}
-                className="rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-xs hover:shadow-md transition-shadow duration-150 flex flex-col justify-between overflow-hidden"
+                className="surface-card flex flex-col justify-between overflow-hidden hover:border-zinc-300 dark:hover:border-dark-borderStrong transition-colors"
               >
                 <div>
-                  {/* Image & Stock Badge Header */}
-                  <div className="relative h-44 w-full bg-slate-100 dark:bg-dark-elevated overflow-hidden">
-                    <img
+                  {/* Optimized Aspect-Ratio Image Container */}
+                  <div className="relative aspect-[4/3] w-full bg-zinc-100 dark:bg-dark-elevated border-b border-zinc-200/70 dark:border-dark-border overflow-hidden">
+                    <ProductImage
+                      sku={p.sku}
                       src={p.imageUrl}
                       alt={p.name}
+                      width={400}
+                      height={300}
+                      eager={idx < 3}
                       className="w-full h-full object-cover"
-                      loading="lazy"
                     />
 
-                    {/* Stock Status Pill */}
-                    <div className="absolute top-2.5 left-2.5">
+                    {/* Stock Badge */}
+                    <div className="absolute top-3 left-3">
                       {p.stockStatus === 'IN_STOCK' && (
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 text-white text-[10px] font-bold tracking-wide backdrop-blur-xs">
-                          {p.availableCases} Cases in Stock
+                        <span className="px-2.5 py-1 rounded-md bg-emerald-700 text-white text-xs font-semibold shadow-sm tabular-nums">
+                          {p.availableCases} cases available
                         </span>
                       )}
                       {p.stockStatus === 'LOW_STOCK' && (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/95 text-white text-[10px] font-bold tracking-wide backdrop-blur-xs">
-                          Low Stock: {p.availableCases} left
+                        <span className="px-2.5 py-1 rounded-md bg-amber-600 text-white text-xs font-semibold shadow-sm tabular-nums">
+                          Low stock: {p.availableCases} left
                         </span>
                       )}
                       {p.stockStatus === 'OUT_OF_STOCK' && (
-                        <span className="px-2 py-0.5 rounded-md bg-rose-600/90 text-white text-[10px] font-bold tracking-wide backdrop-blur-xs">
-                          Out of Stock
+                        <span className="px-2.5 py-1 rounded-md bg-rose-700 text-white text-xs font-semibold shadow-sm">
+                          Out of stock
                         </span>
                       )}
                     </div>
 
-                    {/* HSN & GST Badge */}
-                    <div className="absolute top-2.5 right-2.5 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md backdrop-blur-xs">
-                      HSN {p.hsnCode} • {p.gstRatePercent}% GST
+                    {/* HSN & Tax Pill */}
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-zinc-900/80 text-white text-xs font-medium backdrop-blur-sm tabular-nums">
+                      {p.gstRatePercent}% GST
                     </div>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-4 space-y-2.5">
+                  {/* Card Body */}
+                  <div className="p-5 space-y-3.5">
                     <div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-1">
                         <span className="font-semibold uppercase tracking-wider">{p.brand}</span>
-                        <span>SKU: {p.sku}</span>
+                        <span className="font-mono">{p.sku}</span>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                      <h2 className="text-base font-semibold text-zinc-900 dark:text-white leading-snug">
                         {p.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Pack size: {p.packSize} • {p.unitsPerCase} packs per case
+                      </h2>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 tabular-nums">
+                        Pack {p.packSize} • {p.unitsPerCase} packs / case • HSN {p.hsnCode}
                       </p>
                     </div>
 
-                    {/* Scheme Highlight Pill */}
-                    {p.activeScheme && (
-                      <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
+                    {/* Active Trade Scheme Banner */}
+                    {p.activeScheme ? (
+                      <div className="px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                         {p.activeScheme.schemeType === 'BUY_X_GET_Y_FREE' ? (
-                          <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <Gift className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         ) : (
-                          <Percent className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <Percent className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         )}
                         <span className="truncate">{p.activeScheme.name}</span>
                       </div>
+                    ) : (
+                      <div className="px-3 py-2 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/70 dark:border-dark-border text-xs text-zinc-500 dark:text-zinc-400">
+                        Standard wholesale rate • Net case billing
+                      </div>
                     )}
 
-                    {/* Pricing Box (Pack-to-Case Transparency) */}
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-dark-elevated border border-slate-100 dark:border-dark-border flex items-baseline justify-between">
+                    {/* Wholesale Price Transparency Box */}
+                    <div className="p-3.5 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/80 dark:border-dark-border flex items-baseline justify-between gap-2 tabular-nums">
                       <div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
-                          Case Price (Billed)
+                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                          Case Rate ({p.isGstIncluded ? 'Incl. GST' : `Excl. ${p.gstRatePercent}% GST`})
                         </div>
-                        <div className="text-base font-extrabold text-brand-900 dark:text-blue-400">
-                          ₹{p.calculatedCasePrice.toFixed(2)}
+                        <div className="text-lg font-bold text-zinc-900 dark:text-white mt-0.5">
+                          ₹{p.calculatedCasePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
+                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           Dealer / Pack
                         </div>
-                        <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                           ₹{p.dealerPricePerPack.toFixed(2)}
-                          <span className="text-[10px] text-slate-400 line-through ml-1">
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through ml-1.5">
                             MRP ₹{p.mrp}
                           </span>
                         </div>
@@ -263,65 +334,81 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* Footer Actions (Stepper + Add to Cart) */}
-                <div className="p-4 pt-0">
-                  <div className="flex items-center space-x-2">
-                    {/* Stepper */}
-                    <div className="flex items-center border border-slate-200 dark:border-dark-border rounded-xl bg-slate-50 dark:bg-dark-elevated">
+                {/* Card Footer: Touch-Friendly Stepper + Add */}
+                <div className="px-5 pb-5 pt-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="inline-flex items-center rounded-lg border border-zinc-300 dark:border-dark-borderStrong bg-zinc-50 dark:bg-dark-elevated">
                       <button
                         type="button"
                         onClick={() => handleStep(p._id, -1)}
                         disabled={isOutOfStock}
-                        className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 disabled:opacity-40"
+                        aria-label={`Decrease cases for ${p.name}`}
+                        className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-l-lg disabled:opacity-40 transition-colors"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-4 h-4" />
                       </button>
-                      <span className="w-7 text-center text-xs font-bold text-slate-900 dark:text-white">
+                      <span className="w-9 text-center text-sm font-semibold text-zinc-900 dark:text-white tabular-nums">
                         {getStepperQty(p._id)}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleStep(p._id, 1)}
                         disabled={isOutOfStock}
-                        className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 disabled:opacity-40"
+                        aria-label={`Increase cases for ${p.name}`}
+                        className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-r-lg disabled:opacity-40 transition-colors"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
                       </button>
                     </div>
 
-                    {/* Add to Cart Button */}
                     <button
                       type="button"
                       onClick={() => handleAdd(p)}
                       disabled={isOutOfStock}
-                      className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                      className={`flex-1 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors inline-flex items-center justify-center gap-2 tabular-nums ${
                         isOutOfStock
-                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                          ? 'bg-zinc-200 dark:bg-dark-elevated text-zinc-500 dark:text-zinc-500 border border-zinc-300 dark:border-dark-border cursor-not-allowed'
                           : inCart > 0
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                          : 'bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-700 text-white shadow-xs'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                          : 'bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-sm'
                       }`}
                     >
                       {inCart > 0 ? (
                         <>
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4 shrink-0" />
                           <span>{inCart} in Cart (+{getStepperQty(p._id)})</span>
                         </>
                       ) : (
                         <>
-                          <ShoppingCart className="w-3.5 h-3.5" />
-                          <span>Add Case(s)</span>
+                          <ShoppingCart className="w-4 h-4 shrink-0" />
+                          <span>Add Case{getStepperQty(p._id) > 1 ? 's' : ''}</span>
                         </>
                       )}
                     </button>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
+        </div>
+      )}
+
+      {/* Quick Mobile Sticky Checkout Bar when Cart has Items */}
+      {itemCount > 0 && (
+        <div className="fixed bottom-4 left-4 right-20 sm:left-auto sm:right-28 z-30 md:hidden">
+          <button
+            type="button"
+            onClick={() => onNavigate('cart')}
+            className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl flex items-center justify-between text-sm font-semibold tabular-nums"
+          >
+            <span>{itemCount} Case{itemCount > 1 ? 's' : ''} in Cart</span>
+            <span className="inline-flex items-center gap-1">
+              <span>Checkout</span>
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          </button>
         </div>
       )}
     </div>
   );
 };
-

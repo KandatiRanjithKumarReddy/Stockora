@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { ShoppingBag, Menu, X, User, LogOut, LayoutDashboard, ShoppingCart } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  ShoppingBag,
+  Menu,
+  X,
+  User,
+  LogOut,
+  LayoutDashboard,
+  ShoppingCart,
+  Sparkles,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -13,106 +22,102 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
   const handleNavClick = (view: string) => {
     onNavigate(view);
     setMobileMenuOpen(false);
   };
 
+  const navLinkClass = (view: string) =>
+    `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      currentView === view
+        ? 'bg-zinc-100 dark:bg-dark-elevated text-zinc-900 dark:text-white font-semibold'
+        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-dark-elevated/60'
+    }`;
+
   return (
-    <nav className="sticky top-0 z-30 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-slate-200 dark:border-dark-border transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-zinc-200 dark:border-dark-border">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo & Tagline */}
-          <div
+          {/* Brand Logo */}
+          <button
+            type="button"
             onClick={() => handleNavClick('home')}
-            className="flex items-center space-x-3 cursor-pointer group"
+            className="flex items-center gap-3 text-left rounded-lg py-1 pr-2"
           >
-            <div className="w-10 h-10 rounded-xl bg-brand-900 dark:bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-900/20 group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-lg bg-brand-700 dark:bg-brand-600 flex items-center justify-center text-white shadow-sm shrink-0">
+              <ShoppingBag className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white leading-none">
                   Stockora
                 </span>
-                <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                <span className="hidden sm:inline-block text-xs font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-dark-elevated text-zinc-600 dark:text-zinc-400 border border-zinc-200/80 dark:border-dark-border">
                   Jabalpur
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-brand-700 dark:text-brand-400 leading-none">
-                Orders Made Simple
-              </p>
+              <span className="block text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-none">
+                Wholesale Distribution
+              </span>
             </div>
-          </div>
+          </button>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <button
-              onClick={() => handleNavClick('home')}
-              className={`transition-colors ${
-                currentView === 'home'
-                  ? 'text-brand-700 dark:text-brand-400 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400'
-              }`}
-            >
+          <div className="hidden md:flex items-center gap-1">
+            <button type="button" onClick={() => handleNavClick('home')} className={navLinkClass('home')}>
               Home
             </button>
-            <button
-              onClick={() => handleNavClick('catalog')}
-              className={`transition-colors ${
-                currentView === 'catalog'
-                  ? 'text-brand-700 dark:text-brand-400 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400'
-              }`}
-            >
+            <button type="button" onClick={() => handleNavClick('catalog')} className={navLinkClass('catalog')}>
               Catalog
             </button>
             <button
+              type="button"
               onClick={() => handleNavClick('ai-order')}
-              className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 currentView === 'ai-order'
-                  ? 'bg-blue-100 text-brand-800 dark:bg-brand-900/50 dark:text-blue-200'
-                  : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 hover:bg-emerald-100'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70 font-semibold'
+                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-dark-elevated'
               }`}
             >
-              <span>⚡ WhatsApp AI Order</span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Smart Order</span>
             </button>
-            <button
-              onClick={() => handleNavClick('about')}
-              className={`transition-colors ${
-                currentView === 'about'
-                  ? 'text-brand-700 dark:text-brand-400 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400'
-              }`}
-            >
+            <button type="button" onClick={() => handleNavClick('about')} className={navLinkClass('about')}>
               About
             </button>
-            <button
-              onClick={() => handleNavClick('contact')}
-              className={`transition-colors ${
-                currentView === 'contact'
-                  ? 'text-brand-700 dark:text-brand-400 font-semibold'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400'
-              }`}
-            >
+            <button type="button" onClick={() => handleNavClick('contact')} className={navLinkClass('contact')}>
               Contact
             </button>
           </div>
 
-          {/* Right Header Actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          {/* Desktop Right Controls */}
+          <div className="hidden md:flex items-center gap-2.5">
             <ThemeToggle />
 
-            {/* Cart Button (for Retailer) */}
             {(!user || user.role === 'RETAILER') && (
               <button
+                type="button"
                 onClick={() => handleNavClick('cart')}
-                className="relative p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                aria-label="View Cart"
+                className={`relative min-w-[40px] min-h-[40px] px-2.5 py-2 rounded-lg border transition-colors inline-flex items-center gap-1.5 ${
+                  currentView === 'cart'
+                    ? 'bg-zinc-100 dark:bg-dark-elevated border-zinc-300 dark:border-dark-borderStrong text-zinc-900 dark:text-white'
+                    : 'bg-white dark:bg-dark-elevated border-zinc-200 dark:border-dark-borderStrong text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-dark-hover'
+                }`}
+                aria-label={`View wholesale cart (${cartItemCount} cases)`}
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4" />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shadow">
+                  <span className="px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-xs font-semibold leading-none tabular-nums">
                     {cartItemCount}
                   </span>
                 )}
@@ -120,154 +125,193 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
             )}
 
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-dark-border">
+              <div className="flex items-center gap-2 pl-2.5 border-l border-zinc-200 dark:border-dark-border">
                 {user.role === 'ORDER_DESK' ? (
                   <button
+                    type="button"
                     onClick={() => handleNavClick('desk-dashboard')}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm"
+                    className={`min-h-[40px] px-3.5 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                      currentView === 'desk-dashboard'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70 hover:bg-amber-100 dark:hover:bg-amber-950'
+                    }`}
                   >
-                    <LayoutDashboard className="w-3.5 h-3.5" />
-                    <span>Desk Dashboard</span>
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Order Desk</span>
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => handleNavClick('my-orders')}
-                    className="px-3 py-1.5 rounded-xl bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-blue-300 text-xs font-semibold flex items-center space-x-1.5 border border-brand-200 dark:border-brand-800"
+                    className={`min-h-[40px] px-3.5 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 border transition-colors ${
+                      currentView === 'my-orders'
+                        ? 'bg-brand-50 dark:bg-brand-900/40 text-brand-800 dark:text-brand-300 border-brand-200 dark:border-brand-700 font-semibold'
+                        : 'bg-white dark:bg-dark-elevated text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-dark-borderStrong hover:bg-zinc-50 dark:hover:bg-dark-hover'
+                    }`}
                   >
-                    <User className="w-3.5 h-3.5" />
-                    <span className="max-w-[120px] truncate">{user.retailer?.storeName || user.name}</span>
+                    <User className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                    <span className="max-w-[140px] truncate">{user.retailer?.storeName || user.name}</span>
                   </button>
                 )}
 
                 <button
+                  type="button"
                   onClick={logout}
-                  title="Sign Out"
-                  className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                  title="Sign out"
+                  aria-label="Sign out"
+                  className="min-w-[40px] min-h-[40px] p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center justify-center"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-dark-border">
+              <div className="flex items-center gap-2 pl-2.5 border-l border-zinc-200 dark:border-dark-border">
                 <button
+                  type="button"
                   onClick={() => handleNavClick('auth')}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="min-h-[40px] px-3.5 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-dark-elevated transition-colors"
                 >
                   Sign In
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleNavClick('register')}
-                  className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-700 text-white shadow-sm transition-colors"
+                  className="min-h-[40px] px-4 py-2 rounded-lg text-sm font-semibold bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-sm transition-colors"
                 >
-                  Register
+                  Register Shop
                 </button>
               </div>
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
-          <div className="flex md:hidden items-center space-x-2">
+          {/* Mobile Controls */}
+          <div className="flex md:hidden items-center gap-2">
             <ThemeToggle />
             {(!user || user.role === 'RETAILER') && (
               <button
+                type="button"
                 onClick={() => handleNavClick('cart')}
-                className="relative p-2 rounded-lg text-slate-700 dark:text-slate-200"
+                className="relative min-w-[40px] min-h-[40px] p-2 rounded-lg border border-zinc-200 dark:border-dark-borderStrong bg-white dark:bg-dark-elevated text-zinc-700 dark:text-zinc-200 flex items-center justify-center"
+                aria-label={`View cart (${cartItemCount} cases)`}
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4" />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center tabular-nums">
                     {cartItemCount}
                   </span>
                 )}
               </button>
             )}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-700 dark:text-slate-200"
-              aria-label="Toggle mobile menu"
+              className="min-w-[40px] min-h-[40px] p-2 rounded-lg border border-zinc-200 dark:border-dark-borderStrong bg-white dark:bg-dark-elevated text-zinc-700 dark:text-zinc-200 flex items-center justify-center"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-dark-border bg-white dark:bg-dark-surface px-4 pt-3 pb-6 space-y-3 animate-fadeIn">
+        <div className="md:hidden border-t border-zinc-200 dark:border-dark-border bg-white dark:bg-dark-surface px-4 pt-3 pb-5 space-y-1.5 animate-fadeIn">
           <button
+            type="button"
             onClick={() => handleNavClick('home')}
-            className="block w-full text-left py-2 text-sm font-medium text-slate-800 dark:text-slate-200"
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-dark-elevated flex items-center"
           >
             Home
           </button>
           <button
+            type="button"
             onClick={() => handleNavClick('catalog')}
-            className="block w-full text-left py-2 text-sm font-medium text-slate-800 dark:text-slate-200"
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-dark-elevated flex items-center"
           >
-            Product Catalog
+            Wholesale Catalog
           </button>
           <button
+            type="button"
             onClick={() => handleNavClick('ai-order')}
-            className="block w-full text-left py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400"
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2"
           >
-            ⚡ WhatsApp AI Order Capture
+            <Sparkles className="w-4 h-4" />
+            <span>Stockora Smart Order</span>
           </button>
           <button
+            type="button"
             onClick={() => handleNavClick('about')}
-            className="block w-full text-left py-2 text-sm font-medium text-slate-800 dark:text-slate-200"
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-dark-elevated flex items-center"
           >
             About Stockora
           </button>
           <button
+            type="button"
             onClick={() => handleNavClick('contact')}
-            className="block w-full text-left py-2 text-sm font-medium text-slate-800 dark:text-slate-200"
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-medium text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-dark-elevated flex items-center"
           >
-            Contact & Support
+            Contact & FAQ
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNavClick('privacy')}
+            className="w-full min-h-[44px] px-3 py-2.5 rounded-lg text-left text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-dark-elevated flex items-center"
+          >
+            Privacy Policy
           </button>
 
-          <div className="pt-3 border-t border-slate-200 dark:border-dark-border">
+          <div className="pt-3 mt-2 border-t border-zinc-200 dark:border-dark-border">
             {isAuthenticated && user ? (
               <div className="space-y-2">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Signed in as {user.name} ({user.role})
+                <div className="px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Signed in as <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{user.name}</span>
                 </div>
                 {user.role === 'ORDER_DESK' ? (
                   <button
+                    type="button"
                     onClick={() => handleNavClick('desk-dashboard')}
-                    className="w-full py-2.5 rounded-xl bg-amber-500 text-white text-xs font-semibold flex items-center justify-center space-x-2"
+                    className="w-full min-h-[44px] px-4 py-2.5 rounded-lg bg-amber-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     <span>Order Desk Dashboard</span>
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => handleNavClick('my-orders')}
-                    className="w-full py-2.5 rounded-xl bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-blue-200 text-xs font-semibold flex items-center justify-center space-x-2"
+                    className="w-full min-h-[44px] px-4 py-2.5 rounded-lg bg-zinc-100 dark:bg-dark-elevated text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-dark-borderStrong text-sm font-semibold flex items-center justify-center gap-2"
                   >
                     <User className="w-4 h-4" />
-                    <span>My Order History</span>
+                    <span>My Orders</span>
                   </button>
                 )}
                 <button
-                  onClick={logout}
-                  className="w-full py-2 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-center space-x-1"
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full min-h-[44px] px-4 py-2.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-sm font-semibold flex items-center justify-center gap-1.5"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <button
+                  type="button"
                   onClick={() => handleNavClick('auth')}
-                  className="w-full py-2.5 rounded-xl border border-slate-300 dark:border-dark-border text-center text-xs font-semibold text-slate-800 dark:text-slate-200"
+                  className="btn-secondary w-full"
                 >
                   Sign In
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleNavClick('register')}
-                  className="w-full py-2.5 rounded-xl bg-brand-900 dark:bg-brand-600 text-center text-xs font-semibold text-white"
+                  className="btn-primary w-full"
                 >
                   Register
                 </button>
@@ -276,7 +320,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };
-

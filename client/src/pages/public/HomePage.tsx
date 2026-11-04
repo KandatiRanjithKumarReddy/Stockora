@@ -1,5 +1,14 @@
 import React from 'react';
-import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowRight,
+  Sparkles,
+  Percent,
+  FileSpreadsheet,
+  CheckCircle2,
+  PackageCheck,
+  Gift,
+  Building2,
+} from 'lucide-react';
 
 interface HomePageProps {
   onNavigate: (view: string) => void;
@@ -7,111 +16,231 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   return (
-    <div className="space-y-16 py-8">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-blue-50/80 via-white to-white dark:from-dark-elevated dark:via-dark-surface dark:to-dark-surface border border-slate-200/80 dark:border-dark-border p-8 sm:p-14">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-brand-900 dark:text-blue-300 text-xs font-bold tracking-wide uppercase mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>FMCG Distribution Reimagined for Jabalpur</span>
+    <div className="space-y-12 sm:space-y-16 py-4 sm:py-6">
+      {/* Commercial B2B Hero */}
+      <section className="surface-card p-6 sm:p-10 lg:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column: Value Proposition */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-100 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              <Building2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+              <span>Authorized Wholesale Distribution • Jabalpur, MP</span>
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.15]">
+                Wholesale kirana ordering, built for speed at the counter.
+              </h1>
+              <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl">
+                Check live warehouse stock, view your exact dealer case price and active free-goods
+                schemes, and place verified orders in under a minute—or paste your regular order
+                list directly into Stockora Smart Order.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => onNavigate('catalog')}
+                className="btn-primary px-6"
+              >
+                <span>Browse Wholesale Catalog</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('ai-order')}
+                className="btn-secondary px-5"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Open Smart Order</span>
+              </button>
+            </div>
+
+            {/* Key Operational Metrics */}
+            <div className="pt-4 border-t border-zinc-200 dark:border-dark-border grid grid-cols-3 gap-4">
+              <div>
+                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
+                  1,800+
+                </div>
+                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                  Kirana stores served
+                </div>
+              </div>
+              <div>
+                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
+                  100%
+                </div>
+                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                  Live stock & scheme math
+                </div>
+              </div>
+              <div>
+                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
+                  1-Click
+                </div>
+                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                  Tally ERP batch export
+                </div>
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-            Stockora <br />
-            <span className="text-brand-700 dark:text-brand-400">Orders Made Simple.</span>
-          </h1>
+          {/* Right Column: Live Order Preview Panel */}
+          <div className="lg:col-span-5">
+            <div className="rounded-xl bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-dark-border pb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    Smart Order Preview
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  Verified Match
+                </span>
+              </div>
 
-          <p className="mt-5 text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
-            Stop deciphering messy WhatsApp voice notes and handwritten slips. Stockora gives 1,800+
-            kirana stores instant wholesale dealer prices, verified stock, automated 10+1 schemes,
-            and an AI engine that turns pasted WhatsApp texts directly into structured orders.
-          </p>
+              <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Pasted Shop Note</div>
+                <p className="text-sm font-mono text-zinc-800 dark:text-zinc-200">
+                  &ldquo;bhaiya 10 peti biscuit chhota, 5 peti washing powder 1 kilo&rdquo;
+                </p>
+              </div>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <button
-              onClick={() => onNavigate('catalog')}
-              className="px-6 py-3.5 rounded-xl bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-700 text-white font-bold text-sm shadow-lg shadow-brand-900/20 transition-all flex items-center justify-center space-x-2"
-            >
-              <span>Browse FMCG Catalog</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onNavigate('ai-order')}
-              className="px-6 py-3.5 rounded-xl border border-slate-300 dark:border-dark-border bg-white dark:bg-dark-elevated hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold text-sm shadow-sm transition-all flex items-center justify-center space-x-2 text-emerald-700 dark:text-emerald-400"
-            >
-              <span>⚡ Try WhatsApp AI Capture</span>
-            </button>
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">
+                      Glucose Biscuit 75g (Case of 96)
+                    </div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tabular-nums">
+                      10 Cases × ₹777.60 • Excl. 5% GST
+                    </div>
+                  </div>
+                  <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>+1 Free</span>
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">
+                      Detergent Powder 1kg (Case of 20)
+                    </div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tabular-nums">
+                      5 Cases × ₹2,030.00 • Excl. 18% GST
+                    </div>
+                  </div>
+                  <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-50 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 text-brand-800 dark:text-brand-300 text-xs font-semibold">
+                    <Percent className="w-3.5 h-3.5" />
+                    <span>3% Off</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="inline-flex items-center gap-1.5">
+                  <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Stock reserved on confirmation</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ai-order')}
+                  className="font-semibold text-brand-700 dark:text-brand-400 hover:underline"
+                >
+                  Try it live &rarr;
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3 Core Value Pillars */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-            AI WhatsApp Order Capture
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Paste rough Hinglish messages like <em>"bhaiya 5 peti biscuit chhota, 2 peti washing powder"</em>.
-            Our 3-tier Gemini fallback engine matches SKUs in under 1 second without ever hallucinating financial values.
+      {/* Core Platform Capabilities */}
+      <section className="space-y-6">
+        <div className="max-w-2xl">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            Engineered for daily wholesale operations
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mt-1">
+            Every workflow is built to eliminate wrong deliveries, stock-out surprises, and manual morning data entry.
           </p>
         </div>
 
-        <div className="p-6 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-brand-600 dark:text-blue-400 flex items-center justify-center mb-4">
-            <TrendingUp className="w-5 h-5" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="surface-card p-6 space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+              Stockora Smart Order
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Paste everyday Hindi or Hinglish order messages and map items directly to distributor
+              SKUs using your shop&apos;s ordering history—always asking before confirming unclear units.
+            </p>
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-            Deterministic Scheme Engine
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Buy 10 cases get 1 free bonuses, slab percentage discounts, and per-SKU HSN GST are
-            calculated 100% deterministically on the backend. Zero guesswork for kirana margins.
-          </p>
-        </div>
 
-        <div className="p-6 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
-            <ShieldCheck className="w-5 h-5" />
+          <div className="surface-card p-6 space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-400 flex items-center justify-center">
+              <Percent className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+              Transparent Schemes & GST
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Buy 10 get 1 free case bonuses, slab discounts, and HSN-wise CGST/SGST splits are
+              calculated with exact precision so retailers know their net landed cost upfront.
+            </p>
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">
-            Tally ERP 1-Click Export
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Order Desk staff review incoming orders, manage credit limits, correct aliases, and
-            export batches directly to Tally-ready CSVs in seconds—eliminating morning manual entry.
-          </p>
+
+          <div className="surface-card p-6 space-y-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+              Credit Guard & Tally Sync
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Orders exceeding credit limits are automatically held for desk approval, and approved
+              vouchers export in one click to Tally-ready CSV batches.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* FMCG Brands Banner */}
-      <section className="rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-dark-elevated p-6 text-center">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">
-          Trusted Distributor Brands in Madhya Pradesh
-        </h4>
-        <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-slate-700 dark:text-slate-300">
-          <span className="flex items-center space-x-1.5 bg-white dark:bg-dark-surface px-4 py-2 rounded-xl border border-slate-200 dark:border-dark-border shadow-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Parle Biscuits & Confectionery</span>
-          </span>
-          <span className="flex items-center space-x-1.5 bg-white dark:bg-dark-surface px-4 py-2 rounded-xl border border-slate-200 dark:border-dark-border shadow-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>HomeCare Detergent Pro</span>
-          </span>
-          <span className="flex items-center space-x-1.5 bg-white dark:bg-dark-surface px-4 py-2 rounded-xl border border-slate-200 dark:border-dark-border shadow-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Chai Gold Premium CTC</span>
-          </span>
-          <span className="flex items-center space-x-1.5 bg-white dark:bg-dark-surface px-4 py-2 rounded-xl border border-slate-200 dark:border-dark-border shadow-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>FoodFest Instant Noodles</span>
-          </span>
+      {/* Authorized Brands Strip */}
+      <section className="surface-card p-6 sm:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Authorized Distributor Portfolio
+            </h2>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300 mt-1">
+              Direct factory stock across packaged foods and household care in Jabalpur district.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            {[
+              'Parle Biscuits & Confectionery',
+              'HomeCare Pro Detergents',
+              'Chai Gold Assam CTC',
+              'FoodFest Instant Noodles',
+            ].map((brandName) => (
+              <span
+                key={brandName}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{brandName}</span>
+              </span>
+            ))}
+          </div>
         </div>
       </section>
     </div>
   );
 };
-

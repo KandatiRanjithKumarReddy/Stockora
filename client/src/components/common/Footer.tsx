@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, MapPin, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { ShoppingBag, MapPin, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (view: string) => void;
@@ -10,128 +10,167 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t bg-white dark:bg-dark-surface border-slate-200 dark:border-dark-border transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand & Tagline */}
-          <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-brand-900 dark:bg-brand-600 flex items-center justify-center text-white">
-                <ShoppingBag className="w-5 h-5" />
+    <footer className="border-t border-zinc-200 dark:border-dark-border bg-white dark:bg-dark-surface">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+          {/* Brand Summary */}
+          <div className="lg:col-span-2 space-y-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-brand-700 dark:bg-brand-600 flex items-center justify-center text-white">
+                <ShoppingBag className="w-4 h-4" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
                 Stockora
               </span>
-              <span className="text-xs uppercase font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                B2B FMCG
+              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-dark-elevated text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-dark-border">
+                Wholesale B2B
               </span>
             </div>
-            <p className="text-sm font-medium text-brand-700 dark:text-brand-400">
-              Orders Made Simple
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md leading-relaxed">
+              Built for Company A in Jabalpur—connecting 1,800+ kirana retailers with live warehouse
+              stock, transparent case pricing, automated trade schemes, and direct Tally ERP export.
             </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md leading-relaxed">
-              Empowering 1,800+ Kirana retailers across Jabalpur with instant dealer prices,
-              transparent schemes, WhatsApp AI order capture, and seamless Tally ERP integration.
-            </p>
-            <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 space-x-1 pt-1">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              <span>Headquartered in Jabalpur, Madhya Pradesh</span>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 pt-1">
+              <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span>Richhai Industrial Area & Wright Town, Jabalpur, MP 482002</span>
             </div>
           </div>
 
-          {/* Quick Navigation */}
+          {/* Platform Links */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-200 mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-200 mb-3.5">
               Platform
-            </h4>
-            <ul className="space-y-2 text-sm">
+            </h3>
+            <ul className="space-y-2.5 text-sm">
               <li>
                 <button
-                  onClick={() => onNavigate('home')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  type="button"
+                  onClick={() => onNavigate('catalog')}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
-                  Home
+                  Wholesale Catalog
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
+                  onClick={() => onNavigate('ai-order')}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                >
+                  Stockora Smart Order
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
                   onClick={() => onNavigate('about')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
                   About Stockora
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate('contact')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
-                  Contact & Support
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('catalog')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                >
-                  Product Catalog
+                  Contact & FAQ
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Account & Trust */}
+          {/* Portal Access */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-200 mb-3">
-              Retailer Access
-            </h4>
-            <ul className="space-y-2 text-sm">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-200 mb-3.5">
+              Portals
+            </h3>
+            <ul className="space-y-2.5 text-sm">
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate('auth')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
                   Retailer Sign In
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate('register')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
-                  New Shop Registration
+                  New Shop Onboarding
                 </button>
               </li>
               <li>
                 <button
+                  type="button"
                   onClick={() => onNavigate('desk-auth')}
-                  className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
                   Order Desk Portal
                 </button>
               </li>
             </ul>
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-dark-border flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>GST Verified Distribution</span>
+          </div>
+
+          {/* Legal & Compliance */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-200 mb-3.5">
+              Legal & Trust
+            </h3>
+            <ul className="space-y-2.5 text-sm">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('privacy')}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                >
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('contact')}
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                >
+                  Distributor Support
+                </button>
+              </li>
+            </ul>
+            <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-dark-border flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>GST & HSN Verified Billing</span>
             </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-dark-border flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 space-y-2 sm:space-y-0">
-          <div>
-            &copy; {currentYear} Stockora (Company A, Jabalpur). All rights reserved.
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="inline-flex items-center space-x-1">
-              <HeartHandshake className="w-3.5 h-3.5 text-blue-500" />
-              <span>Built for Madhya Pradesh Kirana Stores</span>
-            </span>
+        {/* Bottom Copyright */}
+        <div className="mt-10 pt-6 border-t border-zinc-200 dark:border-dark-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+          <p>&copy; {currentYear} Stockora — Company A Distribution, Jabalpur. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => onNavigate('privacy')}
+              className="hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            >
+              Privacy Policy
+            </button>
+            <span aria-hidden="true">•</span>
+            <button
+              type="button"
+              onClick={() => onNavigate('contact')}
+              className="hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            >
+              Help & Dispatch Desk
+            </button>
           </div>
         </div>
       </div>
     </footer>
   );
 };
-

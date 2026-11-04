@@ -1,5 +1,13 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Building2, Store } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Building2,
+  Store,
+  AlertCircle,
+  Truck,
+  ShieldCheck,
+} from 'lucide-react';
 
 interface AboutPageProps {
   onNavigate: (view: string) => void;
@@ -7,118 +15,196 @@ interface AboutPageProps {
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
   return (
-    <div className="max-w-4xl mx-auto py-10 space-y-12">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <span className="text-xs font-bold tracking-widest uppercase text-brand-700 dark:text-blue-400">
-          The Stockora Mission
+    <div className="max-w-5xl mx-auto py-4 sm:py-8 space-y-12">
+      {/* Page Header */}
+      <div className="max-w-3xl space-y-3">
+        <span className="inline-block text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+          About Stockora
         </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
-          Bridging Kirana Habits with Modern Distribution
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white leading-tight">
+          Built around how kirana shops and wholesale desks actually work.
         </h1>
-        <p className="text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-          Stockora is engineered specifically for high-volume FMCG distribution in Tier-2 and Tier-3
-          markets, starting with Jabalpur, Madhya Pradesh.
+        <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          Stockora modernizes daily order capture, stock reservation, and Tally accounting for
+          high-volume FMCG distribution in Jabalpur, Madhya Pradesh—without forcing shopkeepers to
+          abandon familiar ordering habits.
         </p>
       </div>
 
-      {/* The Problem We Solved */}
-      <section className="p-8 rounded-3xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          The Everyday Challenge in FMCG Distribution
-        </h2>
-        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          For years, FMCG distributors serving over 1,800 kirana shops relied on informal ordering channels:
-          unformatted WhatsApp texts, Hindi voice notes, handwritten lists on paper slips, and phone calls.
-          Every morning, 6 dedicated office clerks would spend hours typing these orders by hand into Tally ERP.
-        </p>
-        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          This manual process led to severe operational bottlenecks:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 text-xs text-rose-900 dark:text-rose-200 border border-rose-200/60 dark:border-rose-900/50">
-            ❌ <strong>Incorrect SKU Mappings:</strong> "Biscuit chhota" mistaken for 120g instead of 75g pack.
+      {/* Operational Context & Problem Solved */}
+      <section className="surface-card p-6 sm:p-8 space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+            Why We Built Stockora
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            Processing 600+ daily wholesale orders across 1,800 kirana retailers traditionally meant
+            deciphering notebooks, informal chat messages, and handwritten slips every morning. Without
+            live visibility into warehouse inventory or active trade schemes, lines were cut late and
+            vans made costly return trips.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                Pack-Size & Unit Mix-Ups
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Informal shorthand like &ldquo;biscuit chhota&rdquo; or missing case vs. pack units caused
+                wrong dispatches and redeliveries.
+              </p>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 text-xs text-rose-900 dark:text-rose-200 border border-rose-200/60 dark:border-rose-900/50">
-            ❌ <strong>Stock Availability Friction:</strong> Taking orders for items that ran out in the warehouse.
+
+          <div className="p-4 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                Post-Order Stock-Outs
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Retailers and field salesmen placed orders without seeing real-time carton availability
+                in the Richhai warehouse.
+              </p>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 text-xs text-rose-900 dark:text-rose-200 border border-rose-200/60 dark:border-rose-900/50">
-            ❌ <strong>Missed Schemes:</strong> Shop owners missing out on 10+1 free peti schemes.
+
+          <div className="p-4 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                Missed Trade Schemes
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Shopkeepers ordering 9 cases missed out on 10+1 free-case schemes simply because
+                promotions were not visible at the counter.
+              </p>
+            </div>
           </div>
-          <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 text-xs text-rose-900 dark:text-rose-200 border border-rose-200/60 dark:border-rose-900/50">
-            ❌ <strong>Costly Redeliveries:</strong> Returns and delivery vehicle wait times caused by wrong quantities.
+
+          <div className="p-4 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                Manual Morning Tally Entry
+              </h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                Six office clerks spent hours retyping orders into Tally ERP before delivery vans
+                could be loaded.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Two-Sided Platform Value */}
+      {/* Two-Sided Platform Architecture */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* For Kirana Retailers */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-brand-700 dark:text-blue-300 flex items-center justify-center">
+        <div className="surface-card p-6 sm:p-7 space-y-4">
+          <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-400 flex items-center justify-center">
             <Store className="w-5 h-5" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            For Kirana Retailers
-          </h3>
-          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>Order in 30 Seconds:</strong> Designed for quick taps between store customers.</span>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+            For Kirana Shop Owners
+          </h2>
+          <ul className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Fast Mobile Ordering:</strong>{' '}
+                Designed for low-bandwidth connections with large tap targets so you can order between customers.
+              </span>
             </li>
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>Transparent Wholesale Margins:</strong> Always see your dealer price and per-pack unit breakdown.</span>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Clear Case & Pack Pricing:</strong>{' '}
+                See per-pack dealer rates, billed carton totals, MRP margins, and exact GST percentages upfront.
+              </span>
             </li>
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>WhatsApp AI Capture:</strong> Paste existing WhatsApp lists without changing your habits.</span>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Stockora Smart Order:</strong>{' '}
+                Paste your usual Hindi or Hinglish order text and review matched cartons before placing the order.
+              </span>
             </li>
           </ul>
         </div>
 
-        {/* For Distributor Order Desk */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border shadow-sm space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+        <div className="surface-card p-6 sm:p-7 space-y-4">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-amber-700 dark:text-amber-400 flex items-center justify-center">
             <Building2 className="w-5 h-5" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            For Distributor Order Desk
-          </h3>
-          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>Tally ERP Sync:</strong> Export verified orders directly to Tally-ready CSVs with zero manual keying.</span>
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+            For the Distributor Order Desk
+          </h2>
+          <ul className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Automated Credit Holds:</strong>{' '}
+                Orders crossing a retailer&apos;s credit limit are flagged automatically for desk review.
+              </span>
             </li>
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>Credit Limit Guard:</strong> Automatic credit-hold flagging prevents outstanding balance overruns.</span>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Shop-Specific Alias Memory:</strong>{' '}
+                Save a shopkeeper&apos;s local product phrasing once so future orders match automatically.
+              </span>
             </li>
-            <li className="flex items-start space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span><strong>Learned Alias Context:</strong> Correct once, and Stockora remembers retailer-specific product slang.</span>
+            <li className="flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+              <span>
+                <strong className="text-zinc-900 dark:text-zinc-200">Direct Tally CSV Export:</strong>{' '}
+                Download approved sales vouchers formatted for immediate Tally import.
+              </span>
             </li>
           </ul>
         </div>
       </section>
 
-      {/* CTA Card */}
-      <section className="text-center p-8 rounded-3xl bg-brand-900 text-white dark:bg-brand-950 border border-blue-800 shadow-xl space-y-4">
-        <h3 className="text-2xl font-bold">Ready to Simplify Your FMCG Orders?</h3>
-        <p className="text-sm text-blue-100 max-w-lg mx-auto">
-          Sign in now as Gupta Kirana Bhandar or test the Order Desk triage console.
-        </p>
-        <div className="pt-2 flex justify-center space-x-4">
+      {/* Bottom CTA */}
+      <section className="surface-card p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <Truck className="w-4 h-4" />
+            <span>Ready for Daily Dispatch</span>
+          </div>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+            Explore the wholesale catalog or sign in to your portal
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Protected dealer pricing and credit visibility for authorized retailers and desk staff.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
           <button
-            onClick={() => onNavigate('auth')}
-            className="px-6 py-3 rounded-xl bg-white text-brand-900 font-bold text-xs shadow hover:bg-blue-50 transition-colors flex items-center space-x-2"
+            type="button"
+            onClick={() => onNavigate('catalog')}
+            className="btn-secondary"
           >
-            <span>Sign In to Stockora</span>
+            View Catalog
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('auth')}
+            className="btn-primary"
+          >
+            <span>Sign In</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </section>
+
+      <div className="flex items-center justify-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <span>Dealer prices and credit balances remain strictly private to each shop and the distributor desk.</span>
+      </div>
     </div>
   );
 };
-

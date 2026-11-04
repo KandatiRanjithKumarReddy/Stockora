@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" fill="none">
+  <rect width="400" height="300" fill="#EFF6FF"/>
+  <circle cx="330" cy="65" r="95" fill="#DBEAFE" opacity="0.8"/>
+  <!-- Wholesale Carton -->
+  <rect x="75" y="72" width="146" height="158" rx="12" fill="#1D4ED8" opacity="0.12"/>
+  <rect x="68" y="66" width="146" height="158" rx="12" fill="#2563EB" stroke="#1E40AF" stroke-width="2.5"/>
+  <rect x="86" y="110" width="110" height="60" rx="8" fill="#EFF6FF"/>
+  <text x="141" y="134" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="13" fill="#1E3A8A">HOMECARE PRO</text>
+  <text x="141" y="154" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="12" fill="#1D4ED8">20 BAGS × 1 KG</text>
+  <!-- 1kg Detergent Pouch -->
+  <rect x="198" y="96" width="122" height="144" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.5"/>
+  <rect x="212" y="114" width="94" height="36" rx="6" fill="#0284C7"/>
+  <text x="259" y="137" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="12" fill="#FFFFFF">ACTIVE WASH</text>
+  <circle cx="259" cy="186" r="24" fill="#E0F2FE" stroke="#0284C7" stroke-width="2"/>
+  <text x="259" y="191" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="14" fill="#0369A1">1 KG</text>
+</svg>
+

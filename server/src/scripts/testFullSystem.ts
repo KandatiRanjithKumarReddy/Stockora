@@ -69,10 +69,10 @@ async function runFullSystemTest() {
     console.log(`   - Glucose Free Goods: ${itemGlucose.freeCases} Case(s) (Buy 10 Get 1 Free verified: ${itemGlucose.freeCases === 1 ? 'PASS' : 'FAIL'})`);
     console.log(`   - Detergent Slab Discount: ₹${itemDetergent.discountAmount} (3% verified: ${itemDetergent.discountPercent === 3 ? 'PASS' : 'FAIL'})`);
 
-    // 4. Test Gemini 3-Model Fallback AI Parser
-    console.log('\n[4/7] Testing Google Gemini 3-Tier Cascade AI Order Capture...');
+    // 4. Test Smart Order AI Parser (verifying zero internal model exposure)
+    console.log('\n[4/7] Testing Stockora Smart Order Capture & Zero-Exposure Contract...');
     const rawOrderMsg = 'bhaiya 5 peti biscuit chhota, 2 peti washing powder 1 kilo, chai patti 250 wala 1 peti';
-    console.log(`   Raw WhatsApp Input: "${rawOrderMsg}"`);
+    console.log(`   Raw Order Input: "${rawOrderMsg}"`);
     const aiRes = await fetch(`${baseUrl}/ai/parse-order`, {
       method: 'POST',
       headers: {
@@ -82,7 +82,8 @@ async function runFullSystemTest() {
       body: JSON.stringify({ rawText: rawOrderMsg }),
     });
     const aiJson = (await aiRes.json()) as any;
-    console.log(`✅ AI Parsing Succeeded using model: ${aiJson.modelUsed} (Duration: ${aiJson.durationMs}ms, Fallback: ${aiJson.fallbackTriggered})`);
+    const leaksInternalMeta = Boolean(aiJson.modelUsed || aiJson.attemptedModels || aiJson.durationMs);
+    console.log(`✅ Smart Order Parsing Succeeded (Zero Technical Exposure Verified: ${!leaksInternalMeta ? 'PASS' : 'FAIL'})`);
     console.log(`   Suggestions Extracted (${aiJson.count}):`);
     for (const s of aiJson.suggestions) {
       console.log(`   - "${s.originalPhrase}" -> Matched: [${s.suggestedSku}] ${s.product?.name} (Qty: ${s.quantity} ${s.unit}, Conf: ${(s.confidenceScore * 100).toFixed(0)}%)`);

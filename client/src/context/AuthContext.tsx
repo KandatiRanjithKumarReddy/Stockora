@@ -34,11 +34,11 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (phone: string, password: string) => Promise<void>;
-  loginWithGoogleDemo: () => Promise<void>;
+  login: (phone: string, password: string) => Promise<User>;
+  loginWithGoogleDemo: () => Promise<User>;
   requestOtp: (phone: string) => Promise<{ mockOtp: string; message: string }>;
-  verifyOtp: (phone: string, otp: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  verifyOtp: (phone: string, otp: string) => Promise<User>;
+  register: (data: any) => Promise<User>;
   logout: () => void;
 }
 
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         logout();
       }
-    } catch (err) {
+    } catch {
       logout();
     } finally {
       setIsLoading(false);
@@ -72,24 +72,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const setAuthSession = (newToken: string, newUser: User) => {
+  const setAuthSession = (newToken: string, newUser: User): User => {
     localStorage.setItem('stockora_token', newToken);
     setToken(newToken);
     setUser(newUser);
+    return newUser;
   };
 
-  const login = async (phone: string, password: string) => {
+  const login = async (phone: string, password: string): Promise<User> => {
     const res = await api.post('/auth/login', { phone, password });
-    if (res.data.success) {
-      setAuthSession(res.data.token, res.data.user);
+    if (res.data.success && res.data.user) {
+      return setAuthSession(res.data.token, res.data.user);
     }
+    throw new Error('Unable to sign in with the provided credentials.');
   };
 
-  const loginWithGoogleDemo = async () => {
+  const loginWithGoogleDemo = async (): Promise<User> => {
     const res = await api.post('/auth/google', { demoAccount: true });
-    if (res.data.success) {
-      setAuthSession(res.data.token, res.data.user);
+    if (res.data.success && res.data.user) {
+      return setAuthSession(res.data.token, res.data.user);
     }
+    throw new Error('Unable to complete Google sign-in.');
   };
 
   const requestOtp = async (phone: string) => {
@@ -97,18 +100,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { mockOtp: res.data.mockOtp, message: res.data.message };
   };
 
-  const verifyOtp = async (phone: string, otp: string) => {
+  const verifyOtp = async (phone: string, otp: string): Promise<User> => {
     const res = await api.post('/auth/otp/verify', { phone, otp });
-    if (res.data.success) {
-      setAuthSession(res.data.token, res.data.user);
+    if (res.data.success && res.data.user) {
+      return setAuthSession(res.data.token, res.data.user);
     }
+    throw new Error('Verification code check failed.');
   };
 
-  const register = async (data: any) => {
+  const register = async (data: any): Promise<User> => {
     const res = await api.post('/auth/register', data);
-    if (res.data.success) {
-      setAuthSession(res.data.token, res.data.user);
+    if (res.data.success && res.data.user) {
+      return setAuthSession(res.data.token, res.data.user);
     }
+    throw new Error('Account registration could not be completed.');
   };
 
   const logout = () => {
@@ -145,4 +150,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-

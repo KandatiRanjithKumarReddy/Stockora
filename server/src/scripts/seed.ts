@@ -132,7 +132,7 @@ async function seed() {
       stockCasesAvailable: 340,
       stockCasesReserved: 0,
       lowStockThresholdCases: 20,
-      imageUrl: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500&auto=format&fit=crop&q=80',
+      imageUrl: '/images/products/sku-bs-075.svg',
       isActive: true,
     },
     {
@@ -152,7 +152,7 @@ async function seed() {
       stockCasesAvailable: 85,
       stockCasesReserved: 0,
       lowStockThresholdCases: 15,
-      imageUrl: 'https://images.unsplash.com/photo-1585670270608-b4b4f1da0d01?w=500&auto=format&fit=crop&q=80',
+      imageUrl: '/images/products/sku-dt-1kg.svg',
       isActive: true,
     },
     {
@@ -172,7 +172,7 @@ async function seed() {
       stockCasesAvailable: 0, // Out of Stock Sample
       stockCasesReserved: 0,
       lowStockThresholdCases: 10,
-      imageUrl: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=80',
+      imageUrl: '/images/products/sku-te-250.svg',
       isActive: true,
     },
     {
@@ -192,7 +192,7 @@ async function seed() {
       stockCasesAvailable: 150,
       stockCasesReserved: 0,
       lowStockThresholdCases: 25,
-      imageUrl: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=500&auto=format&fit=crop&q=80',
+      imageUrl: '/images/products/sku-bs-120.svg',
       isActive: true,
     },
     {
@@ -212,7 +212,7 @@ async function seed() {
       stockCasesAvailable: 210,
       stockCasesReserved: 0,
       lowStockThresholdCases: 30,
-      imageUrl: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=500&auto=format&fit=crop&q=80',
+      imageUrl: '/images/products/sku-nd-070.svg',
       isActive: true,
     },
   ];

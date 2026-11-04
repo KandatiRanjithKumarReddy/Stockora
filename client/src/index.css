@@ -6,16 +6,63 @@
   :root {
     color-scheme: light;
   }
+
   .dark {
     color-scheme: dark;
   }
 
+  html {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-light-bg text-slate-900 transition-colors duration-200 antialiased;
+    @apply bg-light-bg text-zinc-900 antialiased text-sm sm:text-[15px] leading-relaxed;
   }
 
   .dark body {
-    @apply bg-dark-bg text-slate-100;
+    @apply bg-dark-bg text-zinc-100;
+  }
+
+  /* Accessible keyboard focus outlines across interactive controls */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-black;
   }
 }
 
+@layer components {
+  .surface-card {
+    @apply bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border rounded-xl shadow-sm;
+  }
+
+  .surface-elevated {
+    @apply bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/80 dark:border-dark-border rounded-lg;
+  }
+
+  /* 16px on mobile prevents iOS/Android viewport auto-zoom; 14px on sm+ for crisp SaaS density */
+  .form-input {
+    @apply w-full min-h-[44px] px-3.5 py-2.5 text-base sm:text-sm rounded-lg border border-zinc-300 dark:border-dark-borderStrong bg-white dark:bg-dark-elevated text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 transition-colors focus:border-brand-600 dark:focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-lg text-sm font-semibold bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold bg-white dark:bg-dark-elevated hover:bg-zinc-50 dark:hover:bg-dark-hover text-zinc-800 dark:text-zinc-100 border border-zinc-300 dark:border-dark-borderStrong transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}

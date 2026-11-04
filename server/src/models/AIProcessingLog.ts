@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
+export interface IAIAttemptError {
+  model: string;
+  attempt: number;
+  error: string;
+  durationMs: number;
+}
+
 export interface IAIProcessingLog extends Document {
   retailerId?: Types.ObjectId;
   rawInputText: string;
@@ -9,6 +16,7 @@ export interface IAIProcessingLog extends Document {
   durationMs: number;
   status: 'SUCCESS' | 'PARTIAL_MATCH' | 'FALLBACK_EXHAUSTED' | 'ERROR';
   errorCategory?: string;
+  attemptErrors?: IAIAttemptError[];
   matchedSkus: string[];
   unmatchedPhrases: string[];
   createdAt: Date;
@@ -29,6 +37,14 @@ const AIProcessingLogSchema = new Schema<IAIProcessingLog>(
       index: true,
     },
     errorCategory: { type: String },
+    attemptErrors: [
+      {
+        model: { type: String },
+        attempt: { type: Number },
+        error: { type: String },
+        durationMs: { type: Number },
+      },
+    ],
     matchedSkus: [{ type: String }],
     unmatchedPhrases: [{ type: String }],
   },

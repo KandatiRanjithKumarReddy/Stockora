@@ -84,6 +84,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
       hasCustomPrice: customPrice !== undefined,
       calculatedCasePrice: effectiveCasePrice,
       gstRatePercent: p.gstRatePercent,
+      isGstIncluded: p.isGstIncluded ?? false,
       stockCasesAvailable: p.stockCasesAvailable,
       stockCasesReserved: p.stockCasesReserved,
       availableCases,

@@ -170,7 +170,7 @@ export const requestOtp = async (req: AuthenticatedRequest, res: Response): Prom
 
   res.json({
     success: true,
-    message: `Mock OTP sent to ${phone}. (Use '123456' for instant demo login)`,
+    message: `Verification code sent to ${phone}. Use 123456 for demo access.`,
     mockOtp,
     isDemoMode: true,
   });
@@ -186,7 +186,7 @@ export const verifyOtp = async (req: AuthenticatedRequest, res: Response): Promi
   const { phone, otp } = result.data;
 
   if (otp !== '123456') {
-    res.status(400).json({ success: false, message: 'Invalid OTP code. For demo, use 123456.' });
+    res.status(400).json({ success: false, message: 'Invalid verification code. Please check the 6-digit code and try again.' });
     return;
   }
 
@@ -279,7 +279,7 @@ export const googleAuth = async (req: AuthenticatedRequest, res: Response): Prom
   // Ready for live Google Client ID ID-token verification
   res.status(501).json({
     success: false,
-    message: 'Live Google Client ID not yet configured in .env. Use Demo Google Sign-In.',
+    message: 'Google workspace sign-in is currently available in demo mode.',
   });
 };
 

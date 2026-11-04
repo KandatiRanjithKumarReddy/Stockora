@@ -5,11 +5,12 @@
   "scripts": {
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
+    "build": "npm run build:server && npm run build:client",
     "build:server": "npm run build --prefix server",
     "build:client": "npm run build --prefix client",
     "seed": "npm run seed --prefix server"
   },
-  "keywords": ["fmcg", "ordering", "kirana", "tally", "gemini-ai", "mongodb-atlas"],
+  "keywords": ["fmcg", "ordering", "kirana", "tally", "wholesale", "mongodb-atlas"],
   "author": "Stockora Team"
 }
 

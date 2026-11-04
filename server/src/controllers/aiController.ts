@@ -109,12 +109,18 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     };
   });
 
+  if (validatedSuggestions.length === 0) {
+    res.status(422).json({
+      success: false,
+      message:
+        'We could not match any catalog products from that note. Try mentioning the item name and case count (for example, "5 peti glucose biscuit"), or browse the catalog directly.',
+    });
+    return;
+  }
+
+  // Never expose model names, provider details, fallback flags, or internal latency to clients
   res.json({
     success: true,
-    modelUsed: cascadeResult.modelUsed,
-    attemptedModels: cascadeResult.attemptedModels,
-    fallbackTriggered: cascadeResult.fallbackTriggered,
-    durationMs: cascadeResult.durationMs,
     suggestions: validatedSuggestions,
     count: validatedSuggestions.length,
   });

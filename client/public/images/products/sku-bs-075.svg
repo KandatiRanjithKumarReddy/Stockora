@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" fill="none">
+  <rect width="400" height="300" fill="#FFFBEB"/>
+  <circle cx="330" cy="60" r="90" fill="#FEF3C7" opacity="0.7"/>
+  <!-- Wholesale Master Carton -->
+  <rect x="85" y="68" width="150" height="164" rx="12" fill="#D97706" opacity="0.14"/>
+  <rect x="78" y="62" width="150" height="164" rx="12" fill="#F59E0B" stroke="#B45309" stroke-width="2.5"/>
+  <line x1="78" y1="100" x2="228" y2="100" stroke="#B45309" stroke-width="2" stroke-dasharray="6 4"/>
+  <rect x="98" y="116" width="110" height="58" rx="8" fill="#FFFBEB"/>
+  <text x="153" y="139" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="14" fill="#92400E">PARLE GLUCOSE</text>
+  <text x="153" y="159" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="12" fill="#B45309">96 PACKS × 75g</text>
+  <!-- Single Retail Pack Foreground -->
+  <rect x="206" y="132" width="116" height="106" rx="10" fill="#FFFFFF" stroke="#D97706" stroke-width="2.5"/>
+  <rect x="218" y="146" width="92" height="34" rx="6" fill="#DC2626"/>
+  <text x="264" y="168" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="13" fill="#FFFFFF">GLUCOSE 75g</text>
+  <circle cx="244" cy="206" r="15" fill="#FDE68A" stroke="#B45309" stroke-width="1.8"/>
+  <circle cx="278" cy="206" r="15" fill="#FDE68A" stroke="#B45309" stroke-width="1.8"/>
+</svg>
+

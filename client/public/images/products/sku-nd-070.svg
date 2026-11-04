@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" fill="none">
+  <rect width="400" height="300" fill="#FEFCE8"/>
+  <circle cx="330" cy="65" r="90" fill="#FEF08A" opacity="0.6"/>
+  <!-- Noodles Master Case -->
+  <rect x="76" y="66" width="148" height="162" rx="12" fill="#CA8A04" stroke="#A16207" stroke-width="2.5"/>
+  <rect x="94" y="112" width="112" height="60" rx="8" fill="#FEFCE8"/>
+  <text x="150" y="136" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="13" fill="#854D0E">FOODFEST</text>
+  <text x="150" y="155" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="12" fill="#A16207">96 PACKS × 70g</text>
+  <!-- Instant Noodle Pouch -->
+  <rect x="202" y="108" width="120" height="132" rx="12" fill="#FACC15" stroke="#B45309" stroke-width="2.5"/>
+  <rect x="216" y="124" width="92" height="36" rx="6" fill="#DC2626"/>
+  <text x="262" y="147" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="12" fill="#FFFFFF">MASALA 70g</text>
+  <path d="M232 194q15-12 30 0t30 0" stroke="#92400E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M232 208q15-12 30 0t30 0" stroke="#92400E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+</svg>
+

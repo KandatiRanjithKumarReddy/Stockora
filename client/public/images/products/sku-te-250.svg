@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" fill="none">
+  <rect width="400" height="300" fill="#ECFDF5"/>
+  <circle cx="325" cy="65" r="90" fill="#D1FAE5" opacity="0.8"/>
+  <!-- Master Tea Chest -->
+  <rect x="78" y="68" width="148" height="162" rx="12" fill="#047857" stroke="#065F46" stroke-width="2.5"/>
+  <rect x="96" y="112" width="112" height="62" rx="8" fill="#ECFDF5"/>
+  <text x="152" y="136" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="14" fill="#065F46">CHAI GOLD</text>
+  <text x="152" y="156" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="12" fill="#047857">40 PACKS × 250g</text>
+  <!-- 250g Tea Pack -->
+  <rect x="204" y="106" width="116" height="134" rx="12" fill="#FFFFFF" stroke="#059669" stroke-width="2.5"/>
+  <rect x="218" y="122" width="88" height="36" rx="6" fill="#065F46"/>
+  <text x="262" y="145" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="12" fill="#FDE68A">CTC LEAF 250g</text>
+  <path d="M246 196c8-18 24-22 34-18-4 14-16 26-34 18z" fill="#10B981"/>
+  <text x="262" y="224" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="11" fill="#065F46">ASSAM BLEND</text>
+</svg>
+

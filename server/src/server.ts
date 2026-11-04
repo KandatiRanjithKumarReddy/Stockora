@@ -12,7 +12,7 @@ const startServer = async () => {
   app.listen(port, () => {
     console.log(`[Stockora] Backend API running at http://localhost:${port}`);
     console.log(`[Stockora] Environment: ${env.NODE_ENV}`);
-    console.log(`[Stockora] Gemini Models: ${env.GEMINI_PRIMARY_MODEL} -> ${env.GEMINI_SECONDARY_MODEL} -> ${env.GEMINI_TERTIARY_MODEL}`);
+    console.log(`[Stockora] Smart Order service initialized (${env.GEMINI_API_KEY ? 'Configured' : 'Local Matcher Only'})`);
   });
 };
 

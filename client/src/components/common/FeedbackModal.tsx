@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquarePlus, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,16 @@ export const FeedbackModal: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { user } = useAuth();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +44,17 @@ export const FeedbackModal: React.FC = () => {
 
       setStatusMessage({
         type: 'success',
-        text: 'Thank you! Your feedback has been sent to our Jabalpur support team.',
+        text: 'Thank you. Your feedback has been logged with our Jabalpur support team.',
       });
       setMessage('');
       setTimeout(() => {
         setIsOpen(false);
         setStatusMessage(null);
-      }, 2500);
+      }, 2200);
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to submit feedback. Please try again.',
+        text: err.response?.data?.message || 'Unable to submit feedback right now. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -53,49 +63,55 @@ export const FeedbackModal: React.FC = () => {
 
   return (
     <>
-      {/* Floating Action Pill */}
       <button
         onClick={() => setIsOpen(true)}
         type="button"
-        className="fixed bottom-5 right-5 z-40 bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-700 text-white shadow-xl rounded-full px-4 py-2.5 flex items-center space-x-2 text-xs font-semibold tracking-wide border border-blue-400/30 transition-transform duration-150 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-        aria-label="Send Feedback"
+        className="fixed bottom-5 right-5 z-40 min-h-[44px] px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-dark-elevated dark:hover:bg-dark-hover text-white border border-zinc-700 dark:border-dark-borderStrong shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
+        aria-label="Share product feedback"
       >
-        <MessageSquarePlus className="w-4 h-4" />
-        <span className="hidden sm:inline">Send Feedback</span>
+        <MessageSquarePlus className="w-4 h-4 text-brand-400" />
+        <span className="hidden sm:inline">Feedback</span>
       </button>
 
-      {/* Modal Backdrop & Dialog */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsOpen(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-modal-title"
+            className="surface-card w-full max-w-md p-6 relative shadow-2xl"
+          >
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
-              aria-label="Close feedback modal"
+              className="absolute top-4 right-4 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-dark-elevated transition-colors"
+              aria-label="Close feedback dialog"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-brand-700 dark:text-blue-300">
-                <MessageSquarePlus className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Send Product Feedback
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Help us refine Stockora for your kirana shop
-                </p>
-              </div>
+            <div className="mb-5 pr-8">
+              <h2 id="feedback-modal-title" className="text-lg font-semibold text-zinc-900 dark:text-white">
+                Share Product Feedback
+              </h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Report an issue or request a catalog improvement.
+              </p>
             </div>
 
             {statusMessage && (
               <div
-                className={`mb-4 p-3 rounded-xl flex items-start space-x-2 text-xs ${
+                role="status"
+                aria-live="polite"
+                className={`mb-4 p-3.5 rounded-lg flex items-start gap-2.5 text-sm border ${
                   statusMessage.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-rose-50 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800/70'
+                    : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800/70'
                 }`}
               >
                 {statusMessage.type === 'success' ? (
@@ -109,51 +125,45 @@ export const FeedbackModal: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Feedback Category
+                <label htmlFor="feedback-category" className="form-label">
+                  Topic
                 </label>
                 <select
+                  id="feedback-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value as any)}
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-dark-border bg-white dark:bg-dark-elevated text-slate-900 dark:text-slate-100 p-2.5 focus:ring-2 focus:ring-brand-500 outline-none"
+                  className="form-input"
                 >
                   <option value="GENERAL">General Suggestion</option>
-                  <option value="AI_ACCURACY">AI WhatsApp Match Accuracy</option>
-                  <option value="ORDER_ISSUE">Order or Scheme Calculation Issue</option>
-                  <option value="BUG">Technical Bug / Broken Screen</option>
-                  <option value="FEATURE_REQUEST">Request New Feature / Product</option>
+                  <option value="AI_ACCURACY">Smart Order Match Accuracy</option>
+                  <option value="ORDER_ISSUE">Order, Pricing, or Scheme Query</option>
+                  <option value="BUG">Screen or Technical Issue</option>
+                  <option value="FEATURE_REQUEST">Product or Feature Request</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Your Message
+                <label htmlFor="feedback-message" className="form-label">
+                  Details
                 </label>
                 <textarea
+                  id="feedback-message"
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your suggestion, missing FMCG product, or experience..."
-                  className="w-full text-xs rounded-xl border border-slate-300 dark:border-dark-border bg-white dark:bg-dark-elevated text-slate-900 dark:text-slate-100 p-3 focus:ring-2 focus:ring-brand-500 outline-none resize-none"
+                  placeholder="Tell us how we can improve your ordering workflow..."
+                  className="form-input resize-none"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-brand-900 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-700 text-white transition-colors flex items-center space-x-1.5 disabled:opacity-60"
-                >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Submit Feedback</span>
+                <button type="submit" disabled={isSubmitting} className="btn-primary">
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Send Feedback</span>
                 </button>
               </div>
             </form>
@@ -163,4 +173,3 @@ export const FeedbackModal: React.FC = () => {
     </>
   );
 };
-
