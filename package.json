@@ -1,0 +1,15 @@
+{
+  "name": "stockora-monorepo",
+  "version": "1.0.0",
+  "description": "Stockora — Orders Made Simple (FMCG Distributor Ordering Platform)",
+  "scripts": {
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build:client": "npm run build --prefix client",
+    "seed": "npm run seed --prefix server"
+  },
+  "keywords": ["fmcg", "ordering", "kirana", "tally", "gemini-ai", "mongodb-atlas"],
+  "author": "Stockora Team"
+}
+
