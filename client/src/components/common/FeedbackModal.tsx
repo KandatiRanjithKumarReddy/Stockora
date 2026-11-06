@@ -1,20 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { MessageSquarePlus, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { MessageSquarePlus, X, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 export const FeedbackModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState<'GENERAL' | 'BUG' | 'ORDER_ISSUE' | 'AI_ACCURACY' | 'FEATURE_REQUEST'>('GENERAL');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const submittingRef = useRef(false);
 
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleClose = () => {
+    if (submittingRef.current || isSubmitting) return;
+    setIsOpen(false);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && !submittingRef.current) {
         setIsOpen(false);
       }
     };
@@ -24,13 +31,16 @@ export const FeedbackModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || message.length < 5) {
-      setStatusMessage({ type: 'error', text: 'Please enter at least 5 characters of feedback.' });
+    if (submittingRef.current || isSubmitting) return;
+
+    const trimmed = message.trim();
+    if (!trimmed || trimmed.length < 5) {
+      toast.warning('Please enter at least 5 characters of feedback.', { id: 'feedback-validation' });
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
-    setStatusMessage(null);
 
     try {
       await api.post('/public/feedback', {
@@ -42,21 +52,17 @@ export const FeedbackModal: React.FC = () => {
         role: user?.role || 'ANONYMOUS',
       });
 
-      setStatusMessage({
-        type: 'success',
-        text: 'Thank you. Your feedback has been logged with our Jabalpur support team.',
-      });
       setMessage('');
-      setTimeout(() => {
-        setIsOpen(false);
-        setStatusMessage(null);
-      }, 2200);
+      setCategory('GENERAL');
+      setIsOpen(false);
+      toast.success('Feedback submitted successfully. Thank you!', { id: 'feedback-submit' });
     } catch (err: any) {
-      setStatusMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Unable to submit feedback right now. Please try again.',
-      });
+      toast.error(
+        err.response?.data?.message || 'Unable to submit feedback right now. Please try again.',
+        { id: 'feedback-submit-error' }
+      );
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -77,7 +83,7 @@ export const FeedbackModal: React.FC = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setIsOpen(false);
+            if (e.target === e.currentTarget) handleClose();
           }}
         >
           <div
@@ -88,8 +94,9 @@ export const FeedbackModal: React.FC = () => {
           >
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-dark-elevated transition-colors"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="absolute top-4 right-4 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-dark-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Close feedback dialog"
             >
               <X className="w-4 h-4" />
@@ -104,25 +111,6 @@ export const FeedbackModal: React.FC = () => {
               </p>
             </div>
 
-            {statusMessage && (
-              <div
-                role="status"
-                aria-live="polite"
-                className={`mb-4 p-3.5 rounded-lg flex items-start gap-2.5 text-sm border ${
-                  statusMessage.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800/70'
-                    : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800/70'
-                }`}
-              >
-                {statusMessage.type === 'success' ? (
-                  <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                )}
-                <span>{statusMessage.text}</span>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="feedback-category" className="form-label">
@@ -131,6 +119,7 @@ export const FeedbackModal: React.FC = () => {
                 <select
                   id="feedback-category"
                   value={category}
+                  disabled={isSubmitting}
                   onChange={(e) => setCategory(e.target.value as any)}
                   className="form-input"
                 >
@@ -150,6 +139,7 @@ export const FeedbackModal: React.FC = () => {
                   id="feedback-message"
                   rows={4}
                   value={message}
+                  disabled={isSubmitting}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tell us how we can improve your ordering workflow..."
                   className="form-input resize-none"
@@ -158,12 +148,17 @@ export const FeedbackModal: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button type="button" onClick={() => setIsOpen(false)} className="btn-secondary">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  disabled={isSubmitting}
+                  className="btn-secondary"
+                >
                   Cancel
                 </button>
                 <button type="submit" disabled={isSubmitting} className="btn-primary">
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Send Feedback</span>
+                  <span>{isSubmitting ? 'Sending...' : 'Send Feedback'}</span>
                 </button>
               </div>
             </form>

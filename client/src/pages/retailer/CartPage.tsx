@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { ProductImage } from '../../components/common/ProductImage';
 import {
@@ -23,20 +24,25 @@ interface CartPageProps {
 export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
   const { cart, calculation, isLoadingCalc, updateQuantity, removeFromCart, clearCart } = useCart();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleRemoveItem = (item: any) => {
+    removeFromCart(item.productId);
+    toast.info(`Removed ${item.name} from cart.`, { id: `cart-rm-${item.sku}` });
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) {
+      toast.warning('Please sign in to place your wholesale order.', { id: 'cart-signin-warn' });
       onNavigate('auth');
       return;
     }
 
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isSubmitting) return;
 
     setIsSubmitting(true);
-    setErrorMessage(null);
 
     let smartOrderRaw: string | undefined;
     try {
@@ -58,11 +64,27 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
         try {
           sessionStorage.removeItem('stockora_smart_order_raw');
         } catch {}
-        setOrderSuccess(res.data.order);
+        const placedOrder = res.data.order;
+        setOrderSuccess(placedOrder);
         clearCart();
+
+        if (placedOrder.creditHold) {
+          toast.warning(
+            `Order ${placedOrder.orderNumber} submitted under Credit Hold.`,
+            { id: 'order-placed' }
+          );
+        } else {
+          toast.success(
+            `Order ${placedOrder.orderNumber} placed successfully!`,
+            { id: 'order-placed' }
+          );
+        }
       }
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || 'Unable to submit order. Please review stock and try again.');
+      toast.error(
+        err.response?.data?.message || 'Unable to submit order. Please review stock and try again.',
+        { id: 'order-submit-error' }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -180,16 +202,6 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
         </p>
       </div>
 
-      {errorMessage && (
-        <div
-          role="alert"
-          className="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/70 text-rose-900 dark:text-rose-200 text-sm flex items-start gap-2.5"
-        >
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
       {stockWarnings.length > 0 && (
         <div
           role="status"
@@ -286,7 +298,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
 
                   <button
                     type="button"
-                    onClick={() => removeFromCart(item.productId)}
+                    onClick={() => handleRemoveItem(item)}
                     className="min-w-[38px] min-h-[38px] flex items-center justify-center rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                     aria-label={`Remove ${item.name} from cart`}
                   >

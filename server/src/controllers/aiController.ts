@@ -54,6 +54,15 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     effectiveRetailerId
   );
 
+  if (cascadeResult.status === 'FALLBACK_EXHAUSTED' || cascadeResult.status === 'ERROR') {
+    res.status(503).json({
+      success: false,
+      message:
+        'Smart Order is temporarily busy. Please try again in a moment or add items from the catalog.',
+    });
+    return;
+  }
+
   // 4. Validate matches against real DB products and attach live metadata
   const productSkuMap = new Map();
   products.forEach((p) => productSkuMap.set(p.sku, p));
@@ -148,7 +157,10 @@ export const saveRetailerAlias = async (req: AuthenticatedRequest, res: Response
       mappedSku: product.sku,
       preferredUnit,
       confidenceScore: 1.0,
-      createdFrom: req.user?.role === 'ORDER_DESK' ? 'ORDER_DESK_CORRECTION' : 'RETAILER_CONFIRMATION',
+      createdFrom:
+        req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN'
+          ? 'ORDER_DESK_CORRECTION'
+          : 'RETAILER_CONFIRMATION',
     },
     { upsert: true, new: true }
   );

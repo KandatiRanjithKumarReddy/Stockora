@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import {
   ShoppingBag,
   ChevronDown,
@@ -26,6 +27,7 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   const { addToCart } = useCart();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchOrders();
@@ -39,6 +41,7 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
       }
     } catch (err) {
       console.error('Failed to fetch orders:', err);
+      toast.error('Unable to load your order history.', { id: 'my-orders-err' });
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +65,10 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
         item.orderedCases
       );
     });
+    toast.success(
+      `Loaded ${order.items.length} item${order.items.length === 1 ? '' : 's'} from ${order.orderNumber} into cart.`,
+      { id: 'repeat-order' }
+    );
     onNavigate('cart');
   };
 

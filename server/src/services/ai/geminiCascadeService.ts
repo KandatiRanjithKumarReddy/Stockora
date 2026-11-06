@@ -72,7 +72,7 @@ export class GeminiCascadeService {
   }
 
   /**
-   * Evaluates if an error is a transient network/capacity condition suitable for a quick retry or cooldown
+   * Evaluates if an error is a transient network/capacity condition suitable for cooldown tracking
    */
   private isTransientCapacityError(error: any): boolean {
     const errorMsg = String(error?.message || '').toLowerCase();
@@ -123,13 +123,11 @@ export class GeminiCascadeService {
     modelName: string,
     errorMessage: string,
     isTransient: boolean,
-    isUnavailableModel: boolean,
-    failedAttemptsCount = 1
+    isUnavailableModel: boolean
   ): void {
     const prev = this.healthMap.get(modelName) || { consecutiveFailures: 0, cooldownUntil: 0 };
-    const consecutiveFailures = prev.consecutiveFailures + failedAttemptsCount;
+    const consecutiveFailures = prev.consecutiveFailures + 1;
 
-    // Place model in brief cooldown after 2 consecutive transient failures (or longer if 404 model not found)
     let cooldownUntil = 0;
     if (isUnavailableModel) {
       cooldownUntil = Date.now() + env.AI_MODEL_COOLDOWN_MS * 4;
@@ -145,7 +143,7 @@ export class GeminiCascadeService {
   }
 
   /**
-   * Executes a single bounded model invocation with AbortController cancellation and timer cleanup
+   * Executes a single bounded model invocation with AbortController cancellation (default 30s) and timer cleanup
    */
   private async invokeSingleAttempt(
     modelName: string,
@@ -196,13 +194,9 @@ export class GeminiCascadeService {
     }
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   /**
-   * Executes prompt with Primary-first preference, jittered primary retry, circuit-breaker recovery,
-   * and multi-tier failover. Keeps all telemetry strictly internal.
+   * Executes AI-only prompt across the 3 configured Gemini models, waiting up to 30s per model before switching.
+   * Keeps all telemetry strictly internal.
    */
   public async parseOrderText(
     rawText: string,
@@ -259,10 +253,8 @@ JSON STRUCTURE:
 RAW RETAILER ORDER MESSAGE:
 """${rawText}"""`;
 
-    // Build candidate list: non-cooldown models first (Primary always at index 0 when healthy/probe-ready)
     const activeCandidates = this.models.filter((m) => !this.isModelInCooldown(m));
-    // Safety net: if all 3 models entered cooldown simultaneously, still probe Primary so we never get stuck
-    const orderedModels = activeCandidates.length > 0 ? activeCandidates : [this.models[0]];
+    const orderedModels = activeCandidates.length > 0 ? activeCandidates : [...this.models];
 
     if (orderedModels[0] !== this.models[0]) {
       fallbackTriggered = true;
@@ -271,7 +263,6 @@ RAW RETAILER ORDER MESSAGE:
     for (let i = 0; i < orderedModels.length; i++) {
       const modelName = orderedModels[i];
       const isPrimaryModel = modelName === this.models[0];
-      const maxAttemptsForTier = isPrimaryModel ? 2 : 1; // 1 fast retry with jitter on Primary before switching
       const timeoutMs = isPrimaryModel ? env.AI_PRIMARY_TIMEOUT_MS : env.AI_FALLBACK_TIMEOUT_MS;
 
       if (i > 0) {
@@ -279,191 +270,88 @@ RAW RETAILER ORDER MESSAGE:
       }
 
       attemptedModels.push(modelName);
+      const attemptStart = Date.now();
 
-      for (let attempt = 1; attempt <= maxAttemptsForTier; attempt++) {
-        const attemptStart = Date.now();
-        try {
-          const suggestions = await this.invokeSingleAttempt(modelName, fullPrompt, timeoutMs);
-          this.recordSuccess(modelName);
+      try {
+        const suggestions = await this.invokeSingleAttempt(modelName, fullPrompt, timeoutMs);
+        this.recordSuccess(modelName);
 
-          const durationMs = Date.now() - startTime;
+        const durationMs = Date.now() - startTime;
 
-          await AIProcessingLog.create({
-            retailerId,
-            rawInputText: rawText,
-            selectedModel: modelName,
-            attemptedModels,
-            fallbackTriggered,
-            durationMs,
-            status: 'SUCCESS',
-            errorCategory: attemptErrors.length > 0 ? attemptErrors[0].error : undefined,
-            attemptErrors,
-            matchedSkus: suggestions.map((s) => s.suggestedSku),
-            unmatchedPhrases: [],
-          }).catch(() => {});
+        await AIProcessingLog.create({
+          retailerId,
+          rawInputText: rawText,
+          selectedModel: modelName,
+          attemptedModels,
+          fallbackTriggered,
+          durationMs,
+          status: 'SUCCESS',
+          errorCategory: attemptErrors.length > 0 ? attemptErrors[0].error : undefined,
+          attemptErrors,
+          matchedSkus: suggestions.map((s) => s.suggestedSku),
+          unmatchedPhrases: [],
+        }).catch(() => {});
 
-          return {
-            suggestions,
-            modelUsed: modelName,
-            attemptedModels,
-            fallbackTriggered,
-            durationMs,
-            status: 'SUCCESS',
-          };
-        } catch (err: any) {
-          const attemptDuration = Date.now() - attemptStart;
-          const errMsg = String(err?.message || 'Unknown upstream model error');
-          const status = err?.status || err?.statusCode;
-          const isTransient = this.isTransientCapacityError(err);
-          const isUnavailable = status === 404 || errMsg.toLowerCase().includes('not found');
+        return {
+          suggestions,
+          modelUsed: modelName,
+          attemptedModels,
+          fallbackTriggered,
+          durationMs,
+          status: 'SUCCESS',
+        };
+      } catch (err: any) {
+        const attemptDuration = Date.now() - attemptStart;
+        const errMsg = String(err?.message || 'Unknown upstream model error');
+        const status = err?.status || err?.statusCode;
+        const isTransient = this.isTransientCapacityError(err);
+        const isUnavailable = status === 404 || errMsg.toLowerCase().includes('not found');
 
-          attemptErrors.push({
-            model: modelName,
-            attempt,
-            error: errMsg.slice(0, 500),
-            durationMs: attemptDuration,
-          });
+        attemptErrors.push({
+          model: modelName,
+          attempt: 1,
+          error: errMsg.slice(0, 500),
+          durationMs: attemptDuration,
+        });
 
-          console.warn(
-            `[SmartOrder Internal] Tier ${modelName} (attempt ${attempt}/${maxAttemptsForTier}) failed in ${attemptDuration}ms: ${errMsg.slice(0, 180)}`
-          );
+        console.warn(
+          `[SmartOrder Internal] Tier ${modelName} failed in ${attemptDuration}ms: ${errMsg.slice(0, 180)}`
+        );
 
-          // Fatal API key error -> stop immediately instead of wasting calls
-          if (this.isFatalCredentialError(err)) {
-            this.recordFailure(modelName, errMsg, false, false);
-            i = orderedModels.length; // exit outer loop
-            break;
-          }
+        this.recordFailure(modelName, errMsg, isTransient, isUnavailable);
 
-          // Retry Primary once with jitter on transient 503/429/timeout
-          if (attempt < maxAttemptsForTier && isTransient && !isUnavailable) {
-            const backoffMs = 400 + Math.floor(Math.random() * 300);
-            await this.sleep(backoffMs);
-            continue;
-          }
-
-          // Record failure for health/cooldown tracking and proceed to next model in cascade
-          this.recordFailure(modelName, errMsg, isTransient, isUnavailable, attempt);
+        if (this.isFatalCredentialError(err)) {
           break;
         }
       }
     }
 
-    // All cloud AI tiers temporarily unreachable -> execute deterministic local alias + keyword matcher
+    // All 3 AI tiers exhausted — do NOT run any non-AI local keyword parser
     const durationMs = Date.now() - startTime;
-    const heuristicSuggestions = this.fallbackHeuristicParser(rawText, catalogContext, retailerAliases);
     const primaryRootCause = attemptErrors.length > 0 ? attemptErrors[0].error : 'CASCADE_EXHAUSTED';
 
     await AIProcessingLog.create({
       retailerId,
       rawInputText: rawText,
-      selectedModel: 'LOCAL_ALIAS_MATCHER',
+      selectedModel: 'NONE',
       attemptedModels,
       fallbackTriggered: true,
       durationMs,
-      status: heuristicSuggestions.length > 0 ? 'PARTIAL_MATCH' : 'FALLBACK_EXHAUSTED',
+      status: 'FALLBACK_EXHAUSTED',
       errorCategory: primaryRootCause,
       attemptErrors,
-      matchedSkus: heuristicSuggestions.map((s) => s.suggestedSku),
+      matchedSkus: [],
       unmatchedPhrases: [],
     }).catch(() => {});
 
     return {
-      suggestions: heuristicSuggestions,
-      modelUsed: 'LOCAL_ALIAS_MATCHER',
+      suggestions: [],
+      modelUsed: '',
       attemptedModels,
       fallbackTriggered: true,
       durationMs,
-      status: heuristicSuggestions.length > 0 ? 'PARTIAL_MATCH' : 'FALLBACK_EXHAUSTED',
+      status: 'FALLBACK_EXHAUSTED',
     };
-  }
-
-  /**
-   * Deterministic local alias & keyword parser as resilient offline/degraded safety net
-   */
-  private fallbackHeuristicParser(
-    rawText: string,
-    _catalog: { sku: string; name: string; packSize: string }[],
-    aliases: { rawKeyword: string; mappedSku: string }[]
-  ): ParsedLineSuggestion[] {
-    const lines = rawText
-      .split(/[,;\n]+|\band\b|\baur\b/i)
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const results: ParsedLineSuggestion[] = [];
-
-    for (const line of lines) {
-      const lower = line.toLowerCase();
-      let matchedSku = '';
-      let confidence = 0.75;
-      const hasCaseWord = /\b(peti|case|cases|carton|cartons|box)\b/i.test(lower);
-      const hasPieceWord = /\b(packet|packets|pouch|piece|pieces|pcs|pack)\b/i.test(lower);
-      const unitAmbiguous = !hasCaseWord && !hasPieceWord;
-      const unit: 'CASE' | 'PIECE' = hasPieceWord && !hasCaseWord ? 'PIECE' : 'CASE';
-
-      // 1. Check retailer-specific learned aliases first
-      for (const alias of aliases) {
-        if (lower.includes(alias.rawKeyword.toLowerCase())) {
-          matchedSku = alias.mappedSku;
-          confidence = 0.94;
-          break;
-        }
-      }
-
-      // 2. Keyword matching against distributor catalog
-      let clarificationNeeded: string | undefined;
-      if (!matchedSku) {
-        if (lower.includes('biscuit') || lower.includes('glucose') || lower.includes('parle')) {
-          const has120 = lower.includes('120') || lower.includes('bada') || lower.includes('family');
-          const has75 = lower.includes('75') || lower.includes('chhota') || lower.includes('small');
-          matchedSku = has120 ? 'SKU-BS-120' : 'SKU-BS-075';
-          confidence = has120 || has75 ? 0.9 : 0.78;
-          if (!has120 && !has75) {
-            clarificationNeeded = 'Please confirm pack size: 75g standard or 120g family pack.';
-          }
-        } else if (lower.includes('washing') || lower.includes('detergent') || lower.includes('powder') || lower.includes('surf')) {
-          matchedSku = 'SKU-DT-1KG';
-          confidence = 0.88;
-        } else if (lower.includes('chai') || lower.includes('tea') || lower.includes('patti')) {
-          matchedSku = 'SKU-TE-250';
-          confidence = 0.88;
-        } else if (lower.includes('noodle') || lower.includes('maggi') || lower.includes('masala')) {
-          matchedSku = 'SKU-ND-070';
-          confidence = 0.88;
-        }
-      }
-
-      // Extract quantity while ignoring pack weights like 75, 120, 250, 70, 1 kilo
-      const cleanedForQty = lower
-        .replace(/\b(75|120|250|350|70)\s*(g|gm|gram|wala)?\b/g, ' ')
-        .replace(/\b1\s*(kg|kilo)\b/g, ' ');
-      const qtyMatch = cleanedForQty.match(/\b(\d+)\b/);
-      const quantity = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
-
-      if (unitAmbiguous && !clarificationNeeded) {
-        clarificationNeeded = 'Unit was not specified—confirm whether you need full cases (peti) or individual packs.';
-      }
-
-      if (matchedSku) {
-        results.push({
-          originalPhrase: line,
-          suggestedSku: matchedSku,
-          quantity: quantity > 0 ? quantity : 1,
-          unit,
-          confidenceScore: confidence,
-          alternativeSkus:
-            matchedSku === 'SKU-BS-075'
-              ? ['SKU-BS-120']
-              : matchedSku === 'SKU-BS-120'
-              ? ['SKU-BS-075']
-              : [],
-          clarificationNeeded,
-          unitAmbiguous,
-        });
-      }
-    }
-
-    return results;
   }
 }
 

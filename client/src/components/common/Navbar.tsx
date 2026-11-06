@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
@@ -21,6 +22,17 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartItemCount = 0 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
+  const isStaffRole = user?.role === 'ORDER_DESK' || user?.role === 'ADMIN';
+
+  const handleSignOut = () => {
+    logout();
+    setMobileMenuOpen(false);
+    toast.info('Signed out successfully.', { id: 'auth-logout' });
+    if (currentView === 'desk-dashboard' || currentView === 'my-orders') {
+      onNavigate('home');
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -126,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
 
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2 pl-2.5 border-l border-zinc-200 dark:border-dark-border">
-                {user.role === 'ORDER_DESK' ? (
+                {isStaffRole ? (
                   <button
                     type="button"
                     onClick={() => handleNavClick('desk-dashboard')}
@@ -137,7 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
                     }`}
                   >
                     <LayoutDashboard className="w-4 h-4" />
-                    <span>Order Desk</span>
+                    <span>{user.role === 'ADMIN' ? 'Admin Desk' : 'Order Desk'}</span>
                   </button>
                 ) : (
                   <button
@@ -156,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
 
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={handleSignOut}
                   title="Sign out"
                   aria-label="Sign out"
                   className="min-w-[40px] min-h-[40px] p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center justify-center"
@@ -268,14 +280,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
                 <div className="px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
                   Signed in as <span className="text-zinc-800 dark:text-zinc-200 font-semibold">{user.name}</span>
                 </div>
-                {user.role === 'ORDER_DESK' ? (
+                {isStaffRole ? (
                   <button
                     type="button"
                     onClick={() => handleNavClick('desk-dashboard')}
                     className="w-full min-h-[44px] px-4 py-2.5 rounded-lg bg-amber-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
                   >
                     <LayoutDashboard className="w-4 h-4" />
-                    <span>Order Desk Dashboard</span>
+                    <span>{user.role === 'ADMIN' ? 'Admin Desk Dashboard' : 'Order Desk Dashboard'}</span>
                   </button>
                 ) : (
                   <button
@@ -289,10 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, cartIte
                 )}
                 <button
                   type="button"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={handleSignOut}
                   className="w-full min-h-[44px] px-4 py-2.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-sm font-semibold flex items-center justify-center gap-1.5"
                 >
                   <LogOut className="w-4 h-4" />

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { ProductImage } from '../../components/common/ProductImage';
 import {
   Search,
@@ -33,6 +34,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
 
   const { addToCart, cart, itemCount } = useCart();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchMetadata();
@@ -69,6 +71,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
       }
     } catch (err) {
       console.error('Failed to fetch products:', err);
+      toast.error('Unable to load wholesale catalog.', { id: 'catalog-fetch-err' });
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +90,9 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
   const handleAdd = (product: any) => {
     const qty = getStepperQty(product._id);
     addToCart(product, qty);
+    toast.success(`Added ${qty} case${qty > 1 ? 's' : ''} of ${product.name}.`, {
+      id: `cart-add-${product.sku}`,
+    });
   };
 
   const getInCartCases = (productId: string) => {

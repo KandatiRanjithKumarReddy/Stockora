@@ -5,8 +5,6 @@ import {
   MapPin,
   Clock,
   Send,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
   Warehouse,
   Building2,
@@ -14,6 +12,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 
 interface ContactPageProps {
   onNavigate?: (view: string) => void;
@@ -73,19 +72,18 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [openFaqId, setOpenFaqId] = useState<string | null>(FAQ_ITEMS[0].id);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
-    setStatusMessage(null);
 
     try {
       await api.post('/public/contact', formData);
-      setStatusMessage({
-        type: 'success',
-        text: 'Thank you. Your inquiry has been received by our Jabalpur Order Desk and we will respond within one business day.',
+      toast.success('Inquiry sent! Our Jabalpur Order Desk will respond shortly.', {
+        id: 'contact-submit',
       });
       setFormData({
         fullName: '',
@@ -95,10 +93,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
         message: '',
       });
     } catch (err: any) {
-      setStatusMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Unable to send your message right now. Please verify all fields and try again.',
-      });
+      toast.error(
+        err.response?.data?.message ||
+          'Unable to send your message right now. Please verify all fields and try again.',
+        { id: 'contact-error' }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -272,25 +271,6 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               Submit your question and our distributor support desk will get back to you promptly.
             </p>
           </div>
-
-          {statusMessage && (
-            <div
-              role="status"
-              aria-live="polite"
-              className={`mb-6 p-4 rounded-lg border flex items-start gap-3 text-sm animate-fadeIn ${
-                statusMessage.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800/70'
-                  : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800/70'
-              }`}
-            >
-              {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              )}
-              <span>{statusMessage.text}</span>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

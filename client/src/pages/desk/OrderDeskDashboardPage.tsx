@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import {
   Search,
   CheckCircle2,
@@ -7,7 +8,6 @@ import {
   ShieldAlert,
   Eye,
   FileSpreadsheet,
-  AlertCircle,
   X,
   Loader2,
 } from 'lucide-react';
@@ -34,14 +34,12 @@ export const OrderDeskDashboardPage: React.FC = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Non-blocking inline feedback banners (replaces native browser alert() dialogs)
-  const [deskBanner, setDeskBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [drawerNotice, setDrawerNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   // Shop-specific product alias state
   const [aliasKeyword, setAliasKeyword] = useState('');
   const [aliasSku, setAliasSku] = useState('');
   const [isSavingAlias, setIsSavingAlias] = useState(false);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchDeskOrders();
@@ -71,14 +69,15 @@ export const OrderDeskDashboardPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch desk orders:', err);
+      toast.error('Unable to load Order Desk queue.', { id: 'desk-fetch-err' });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string, note?: string) => {
+    if (isUpdatingStatus) return;
     setIsUpdatingStatus(true);
-    setDrawerNotice(null);
     try {
       const res = await api.patch(`/desk/orders/${orderId}/status`, {
         status: newStatus,
@@ -86,19 +85,29 @@ export const OrderDeskDashboardPage: React.FC = () => {
       });
 
       if (res.data.success) {
-        setDrawerNotice({
-          type: 'success',
-          text: `Order status updated to ${newStatus.replace(/_/g, ' ')}.`,
-        });
+        const orderLabel = res.data.order?.orderNumber || selectedOrder?.orderNumber || 'Order';
+        if (newStatus === 'APPROVED') {
+          toast.success(`${orderLabel} approved for warehouse dispatch.`, {
+            id: `desk-status-${orderId}`,
+          });
+        } else if (newStatus === 'REJECTED') {
+          toast.warning(`${orderLabel} rejected and reserved stock released.`, {
+            id: `desk-status-${orderId}`,
+          });
+        } else {
+          toast.warning(`${orderLabel} updated to ${newStatus.replace(/_/g, ' ')}.`, {
+            id: `desk-status-${orderId}`,
+          });
+        }
+
         fetchDeskOrders();
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder((prev: any) => ({ ...prev, status: res.data.order.status }));
         }
       }
     } catch (err: any) {
-      setDrawerNotice({
-        type: 'error',
-        text: err.response?.data?.message || 'Unable to update order status.',
+      toast.error(err.response?.data?.message || 'Unable to update order status.', {
+        id: 'desk-status-err',
       });
     } finally {
       setIsUpdatingStatus(false);
@@ -106,8 +115,8 @@ export const OrderDeskDashboardPage: React.FC = () => {
   };
 
   const handleExportTallyCsv = async () => {
+    if (isExporting) return;
     setIsExporting(true);
-    setDeskBanner(null);
     try {
       const response = await api.get('/desk/export/tally-csv', {
         responseType: 'blob',
@@ -123,15 +132,11 @@ export const OrderDeskDashboardPage: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      setDeskBanner({
-        type: 'success',
-        text: 'Tally ERP sales voucher CSV exported and orders marked as synced.',
-      });
+      toast.success('Tally ERP CSV exported and orders synced.', { id: 'tally-export' });
       fetchDeskOrders();
     } catch {
-      setDeskBanner({
-        type: 'error',
-        text: 'No eligible submitted or approved orders available for Tally CSV export.',
+      toast.error('No eligible submitted or approved orders for Tally CSV export.', {
+        id: 'tally-export-err',
       });
     } finally {
       setIsExporting(false);
@@ -139,10 +144,9 @@ export const OrderDeskDashboardPage: React.FC = () => {
   };
 
   const handleSaveAlias = async () => {
-    if (!aliasKeyword.trim() || !aliasSku.trim() || !selectedOrder) return;
+    if (!aliasKeyword.trim() || !aliasSku.trim() || !selectedOrder || isSavingAlias) return;
 
     setIsSavingAlias(true);
-    setDrawerNotice(null);
     try {
       const res = await api.post('/ai/alias', {
         retailerId: selectedOrder.retailerId._id || selectedOrder.retailerId,
@@ -151,18 +155,15 @@ export const OrderDeskDashboardPage: React.FC = () => {
       });
 
       if (res.data.success) {
-        setDrawerNotice({
-          type: 'success',
-          text: res.data.message || 'Shop alias mapping saved.',
-        });
+        toast.success(res.data.message || 'Shop alias mapping saved.', { id: 'desk-alias-save' });
         setAliasKeyword('');
         setAliasSku('');
       }
     } catch (err: any) {
-      setDrawerNotice({
-        type: 'error',
-        text: err.response?.data?.message || 'Could not save alias. Verify the SKU code.',
-      });
+      toast.error(
+        err.response?.data?.message || 'Could not save alias. Verify the SKU code.',
+        { id: 'desk-alias-err' }
+      );
     } finally {
       setIsSavingAlias(false);
     }
@@ -170,7 +171,6 @@ export const OrderDeskDashboardPage: React.FC = () => {
 
   const openOrderDrawer = (order: any) => {
     setSelectedOrder(order);
-    setDrawerNotice(null);
   };
 
   const renderStatusPill = (status: string) => {
@@ -246,36 +246,6 @@ export const OrderDeskDashboardPage: React.FC = () => {
           <span>Export Tally CSV</span>
         </button>
       </div>
-
-      {/* Inline Desk Notification Banner */}
-      {deskBanner && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`p-4 rounded-lg border flex items-center justify-between gap-3 text-sm animate-fadeIn ${
-            deskBanner.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800/70'
-              : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800/70'
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            {deskBanner.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0" />
-            )}
-            <span>{deskBanner.text}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setDeskBanner(null)}
-            className="p-1 rounded text-current opacity-70 hover:opacity-100"
-            aria-label="Dismiss notification"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Executive KPI Metrics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 tabular-nums">
@@ -483,25 +453,6 @@ export const OrderDeskDashboardPage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {drawerNotice && (
-              <div
-                role="status"
-                aria-live="polite"
-                className={`p-3.5 rounded-lg border flex items-start gap-2.5 text-sm ${
-                  drawerNotice.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800/70'
-                    : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800/70'
-                }`}
-              >
-                {drawerNotice.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                )}
-                <span>{drawerNotice.text}</span>
-              </div>
-            )}
 
             {/* Credit Profile */}
             <div className="p-4 rounded-xl bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border space-y-2.5 text-sm tabular-nums">

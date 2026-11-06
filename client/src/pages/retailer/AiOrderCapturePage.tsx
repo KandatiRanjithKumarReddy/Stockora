@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { ProductImage } from '../../components/common/ProductImage';
 import {
   Sparkles,
@@ -24,15 +25,17 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
   );
   const [isParsing, setIsParsing] = useState(false);
   const [suggestions, setSuggestions] = useState<any[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const { addToCart } = useCart();
+  const { toast } = useToast();
 
   const handleParse = async () => {
-    if (!rawText.trim()) return;
+    if (!rawText.trim()) {
+      toast.warning('Please enter or paste an order message first.', { id: 'smart-order-empty' });
+      return;
+    }
 
     setIsParsing(true);
-    setError(null);
     setSuggestions(null);
 
     try {
@@ -47,11 +50,27 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
           unitConfirmed: !item.unitAmbiguous && item.unit === 'CASE',
         }));
         setSuggestions(enriched);
+
+        const hasUnclearUnits = enriched.some(
+          (s: any) => s.product && s.product.stockStatus !== 'OUT_OF_STOCK' && !s.unitConfirmed
+        );
+        if (hasUnclearUnits) {
+          toast.warning(
+            `Matched ${enriched.length} item${enriched.length === 1 ? '' : 's'}. Confirm case units below.`,
+            { id: 'smart-order-parse' }
+          );
+        } else {
+          toast.success(
+            `Matched ${enriched.length} item${enriched.length === 1 ? '' : 's'} from your order note.`,
+            { id: 'smart-order-parse' }
+          );
+        }
       }
     } catch (err: any) {
-      setError(
+      toast.error(
         err.response?.data?.message ||
-          'We could not process that order text right now. Please check your note or add items from the catalog.'
+          'We could not process that order text right now. Please check your note or add items from the catalog.',
+        { id: 'smart-order-error' }
       );
     } finally {
       setIsParsing(false);
@@ -99,6 +118,7 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
       };
       return updated;
     });
+    toast.info(`Switched line to ${altProduct.name}.`, { id: `smart-alt-${itemIndex}` });
   };
 
   const handleRemoveSuggestion = (index: number) => {
@@ -124,6 +144,10 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
       sessionStorage.setItem('stockora_smart_order_raw', rawText.trim());
     } catch {}
 
+    toast.success(
+      `Added ${eligibleItems.length} confirmed item${eligibleItems.length === 1 ? '' : 's'} to cart.`,
+      { id: 'smart-order-added' }
+    );
     onNavigate('cart');
   };
 
@@ -191,16 +215,6 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
             Unclear Unit Check
           </button>
         </div>
-
-        {error && (
-          <div
-            role="alert"
-            className="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/70 text-rose-900 dark:text-rose-200 text-sm flex items-start gap-2.5 animate-fadeIn"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
 
         <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-zinc-200 dark:border-dark-border">
           <span className="text-xs text-zinc-500 dark:text-zinc-400">

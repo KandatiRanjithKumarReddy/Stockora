@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, User } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { Navbar } from './components/common/Navbar';
@@ -64,7 +65,9 @@ const MainApp: React.FC = () => {
   };
 
   const handleAuthSuccess = (authenticatedUser: User) => {
-    handleNavigate(authenticatedUser.role === 'ORDER_DESK' ? 'desk-dashboard' : 'catalog');
+    const isDeskOrAdmin =
+      authenticatedUser.role === 'ORDER_DESK' || authenticatedUser.role === 'ADMIN';
+    handleNavigate(isDeskOrAdmin ? 'desk-dashboard' : 'catalog');
   };
 
   return (
@@ -147,11 +150,13 @@ const MainApp: React.FC = () => {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <CartProvider>
-          <MainApp />
-        </CartProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <CartProvider>
+            <MainApp />
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

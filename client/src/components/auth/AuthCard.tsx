@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth, User } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import {
   Phone,
   Lock,
   Store,
   MapPin,
   User as UserIcon,
-  AlertCircle,
   ArrowRight,
-  CheckCircle2,
   ShieldCheck,
   Loader2,
 } from 'lucide-react';
@@ -26,21 +25,35 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
   const [storeName, setStoreName] = useState('');
   const [locality, setLocality] = useState('');
   const [otp, setOtp] = useState('');
-  const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login, register, requestOtp, verifyOtp, loginWithGoogleDemo } = useAuth();
+  const { toast } = useToast();
+
+  const notifyLoginSuccess = (authenticatedUser: User) => {
+    if (authenticatedUser.role === 'ADMIN') {
+      toast.success(`Signed in as ${authenticatedUser.name}.`, { id: 'auth-login' });
+    } else if (authenticatedUser.role === 'ORDER_DESK') {
+      toast.success(`Signed in to Order Desk as ${authenticatedUser.name}.`, { id: 'auth-login' });
+    } else {
+      const displayStore = authenticatedUser.retailer?.storeName || authenticatedUser.name;
+      toast.success(`Welcome back, ${displayStore}!`, { id: 'auth-login' });
+    }
+  };
 
   const handlePhonePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const authenticatedUser = await login(phone, password);
+      notifyLoginSuccess(authenticatedUser);
       onSuccess(authenticatedUser);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Sign in failed. Please verify your mobile number and password.');
+      toast.error(
+        err.response?.data?.message || 'Sign in failed. Please verify your mobile number and password.',
+        { id: 'auth-error' }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -48,7 +61,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const authenticatedUser = await register({
@@ -58,23 +71,35 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
         storeName,
         locality,
       });
+      toast.success(
+        `Account registered! Welcome, ${authenticatedUser.retailer?.storeName || authenticatedUser.name}.`,
+        { id: 'auth-register' }
+      );
       onSuccess(authenticatedUser);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration could not be completed.');
+      toast.error(err.response?.data?.message || 'Registration could not be completed.', {
+        id: 'auth-error',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleRequestOtp = async () => {
-    setError(null);
+    if (isSubmitting) return;
+    if (!phone.trim()) {
+      toast.warning('Please enter your mobile number first.', { id: 'otp-phone-warn' });
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await requestOtp(phone);
-      setOtpSentMessage(res.message);
       setOtp(res.mockOtp);
+      toast.info(res.message || 'Verification code sent to your mobile number.', { id: 'otp-sent' });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Could not send verification code.');
+      toast.error(err.response?.data?.message || 'Could not send verification code.', {
+        id: 'auth-error',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -82,26 +107,30 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const authenticatedUser = await verifyOtp(phone, otp);
+      notifyLoginSuccess(authenticatedUser);
       onSuccess(authenticatedUser);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid verification code.');
+      toast.error(err.response?.data?.message || 'Invalid verification code.', {
+        id: 'auth-error',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setError(null);
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const authenticatedUser = await loginWithGoogleDemo();
+      notifyLoginSuccess(authenticatedUser);
       onSuccess(authenticatedUser);
     } catch {
-      setError('Google sign-in could not be completed right now.');
+      toast.error('Google sign-in could not be completed right now.', { id: 'auth-error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -111,14 +140,12 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
     setMode('desk');
     setPhone('9425099881');
     setPassword('desk123');
-    setError(null);
   };
 
   const switchToRetailerMode = (phoneVal = '9826012345') => {
     setMode('signin');
     setPhone(phoneVal);
     setPassword('retailer123');
-    setError(null);
   };
 
   return (
@@ -150,7 +177,6 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
             setMode('signup');
             setPhone('');
             setPassword('');
-            setError(null);
           }}
           className={`min-h-[38px] px-2 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
             mode === 'signup'
@@ -186,17 +212,6 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
                 Authorized access for order verification, credit approval, and Tally ERP batch export.
               </p>
             </div>
-          </div>
-        )}
-
-        {/* Error Alert */}
-        {error && (
-          <div
-            role="alert"
-            className="mb-5 p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/70 flex items-start gap-2.5 text-sm text-rose-900 dark:text-rose-200 animate-fadeIn"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
           </div>
         )}
 
@@ -272,10 +287,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
                 {mode === 'signin' && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setMode('otp');
-                      setError(null);
-                    }}
+                    onClick={() => setMode('otp')}
                     className="text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline"
                   >
                     Use OTP code instead
@@ -356,13 +368,6 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
                 </button>
               </div>
             </div>
-
-            {otpSentMessage && (
-              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-900 dark:text-emerald-200 text-xs flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{otpSentMessage}</span>
-              </div>
-            )}
 
             <div>
               <label htmlFor="otp-code" className="form-label">

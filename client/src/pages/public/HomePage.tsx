@@ -20,21 +20,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       {/* Commercial B2B Hero */}
       <section className="surface-card p-6 sm:p-10 lg:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Value Proposition */}
+          {/* Left Column: Concise Value Proposition */}
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-100 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               <Building2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-              <span>Authorized Wholesale Distribution • Jabalpur, MP</span>
+              <span>Jabalpur Wholesale Distribution • 1,800+ Kirana Stores</span>
             </div>
 
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.15]">
-                Wholesale kirana ordering, built for speed at the counter.
+            <div className="space-y-3.5">
+              <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.12]">
+                Wholesale ordering built for busy kirana counters.
               </h1>
-              <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl">
-                Check live warehouse stock, view your exact dealer case price and active free-goods
-                schemes, and place verified orders in under a minute—or paste your regular order
-                list directly into Stockora Smart Order.
+              <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-xl">
+                Check live warehouse stock, exact case rates, and free-goods schemes—or paste your
+                shop list into Smart Order.
               </p>
             </div>
 
@@ -57,65 +56,54 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               </button>
             </div>
 
-            {/* Key Operational Metrics */}
-            <div className="pt-4 border-t border-zinc-200 dark:border-dark-border grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
-                  1,800+
-                </div>
-                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  Kirana stores served
-                </div>
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
-                  100%
-                </div>
-                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  Live stock & scheme math
-                </div>
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tabular-nums">
-                  1-Click
-                </div>
-                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  Tally ERP batch export
-                </div>
-              </div>
+            {/* Scannable Operational Highlights */}
+            <div className="pt-4 border-t border-zinc-200 dark:border-dark-border flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Live Stock & GST</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Auto Free-Goods Schemes</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>1-Click Tally Export</span>
+              </span>
             </div>
           </div>
 
-          {/* Right Column: Live Order Preview Panel */}
+          {/* Right Column: Streamlined Smart Order Preview */}
           <div className="lg:col-span-5">
             <div className="rounded-xl bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-dark-border pb-3">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                   <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                    Smart Order Preview
-                  </span>
+                  <span>Smart Order Preview</span>
                 </div>
-                <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                  Verified Match
-                </span>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ai-order')}
+                  className="text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline"
+                >
+                  Try it live &rarr;
+                </button>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border">
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Pasted Shop Note</div>
-                <p className="text-sm font-mono text-zinc-800 dark:text-zinc-200">
-                  &ldquo;bhaiya 10 peti biscuit chhota, 5 peti washing powder 1 kilo&rdquo;
+              <div className="px-3.5 py-2.5 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border">
+                <p className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
+                  &ldquo;10 peti biscuit chhota, 5 peti detergent 1kg&rdquo;
                 </p>
               </div>
 
-              <div className="space-y-2.5">
-                <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border flex items-center justify-between gap-3">
+              <div className="rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border divide-y divide-zinc-200 dark:divide-dark-border">
+                <div className="p-3.5 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-zinc-900 dark:text-white">
-                      Glucose Biscuit 75g (Case of 96)
+                      Glucose Biscuit 75g
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tabular-nums">
-                      10 Cases × ₹777.60 • Excl. 5% GST
+                      10 Cases • ₹777.60/case
                     </div>
                   </div>
                   <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
@@ -124,13 +112,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   </span>
                 </div>
 
-                <div className="p-3 rounded-lg bg-white dark:bg-dark-surface border border-zinc-200 dark:border-dark-border flex items-center justify-between gap-3">
+                <div className="p-3.5 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-zinc-900 dark:text-white">
-                      Detergent Powder 1kg (Case of 20)
+                      Detergent Powder 1kg
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tabular-nums">
-                      5 Cases × ₹2,030.00 • Excl. 18% GST
+                      5 Cases • ₹2,030.00/case
                     </div>
                   </div>
                   <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-50 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 text-brand-800 dark:text-brand-300 text-xs font-semibold">
@@ -140,18 +128,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>Stock reserved on confirmation</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('ai-order')}
-                  className="font-semibold text-brand-700 dark:text-brand-400 hover:underline"
-                >
-                  Try it live &rarr;
-                </button>
+              <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <PackageCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Stock reserved instantly on confirmation</span>
               </div>
             </div>
           </div>
