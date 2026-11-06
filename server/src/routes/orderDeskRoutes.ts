@@ -7,17 +7,18 @@ import {
   exportTallyCsv,
 } from '../controllers/orderDeskController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
 
-router.use(requireAuth);
+router.use(asyncHandler(requireAuth));
 router.use(requireRole('ORDER_DESK', 'ADMIN'));
 
-router.get('/orders', getDeskOrders);
-router.get('/orders/:id', getDeskOrderDetail);
-router.patch('/orders/:id/status', updateOrderStatus);
-router.put('/orders/:id/lines', updateOrderLines);
-router.get('/export/tally-csv', exportTallyCsv);
+router.get('/orders', asyncHandler(getDeskOrders));
+router.get('/orders/:id', asyncHandler(getDeskOrderDetail));
+router.patch('/orders/:id/status', asyncHandler(updateOrderStatus));
+router.put('/orders/:id/lines', asyncHandler(updateOrderLines));
+router.get('/export/tally-csv', asyncHandler(exportTallyCsv));
 
 export default router;
 

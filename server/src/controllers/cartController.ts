@@ -7,12 +7,12 @@ import { RetailerPrice } from '../models/RetailerPrice.js';
 import { calculateOrderFinancials } from '../services/schemeEngine.js';
 
 const cartItemSchema = z.object({
-  productId: z.string().min(1, 'Product ID is required'),
-  orderedCases: z.number().int().min(1, 'Ordered cases must be at least 1'),
+  productId: z.string().trim().min(1, 'Product ID is required').max(64),
+  orderedCases: z.number().int().min(1, 'Ordered cases must be at least 1').max(10000, 'Ordered cases exceeds maximum limit'),
 });
 
 const calculateCartSchema = z.object({
-  items: z.array(cartItemSchema),
+  items: z.array(cartItemSchema).max(100, 'Too many distinct cart lines'),
 });
 
 export const calculateCart = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -22,7 +22,15 @@ export const calculateCart = async (req: AuthenticatedRequest, res: Response): P
     return;
   }
 
-  const { items } = result.data;
+  // Aggregate duplicate productId entries before stock & scheme evaluation
+  const mergedQtyMap = new Map<string, number>();
+  for (const item of result.data.items) {
+    mergedQtyMap.set(item.productId, (mergedQtyMap.get(item.productId) || 0) + item.orderedCases);
+  }
+  const items = Array.from(mergedQtyMap.entries()).map(([productId, orderedCases]) => ({
+    productId,
+    orderedCases,
+  }));
   if (items.length === 0) {
     res.json({
       success: true,

@@ -19,8 +19,8 @@ interface AuthCardProps {
 
 export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSuccess }) => {
   const [mode, setMode] = useState<'signin' | 'signup' | 'otp' | 'desk'>(initialMode);
-  const [phone, setPhone] = useState(initialMode === 'desk' ? '9425099881' : '9826012345');
-  const [password, setPassword] = useState(initialMode === 'desk' ? 'desk123' : 'retailer123');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
   const [locality, setLocality] = useState('');
@@ -94,7 +94,11 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
     setIsSubmitting(true);
     try {
       const res = await requestOtp(phone);
-      setOtp(res.mockOtp);
+      if (res.mockOtp) {
+        setOtp(res.mockOtp);
+      } else if (res.isDemoMode) {
+        setOtp('123456');
+      }
       toast.info(res.message || 'Verification code sent to your mobile number.', { id: 'otp-sent' });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Could not send verification code.', {
@@ -160,7 +164,11 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
           type="button"
           role="tab"
           aria-selected={mode === 'signin' || mode === 'otp'}
-          onClick={() => switchToRetailerMode(phone === '9425099881' ? '9826012345' : phone)}
+          onClick={() => {
+            setMode('signin');
+            setPhone('');
+            setPassword('');
+          }}
           className={`min-h-[38px] px-2 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
             mode === 'signin' || mode === 'otp'
               ? 'bg-white dark:bg-dark-surface text-zinc-900 dark:text-white shadow-sm font-semibold'
@@ -190,7 +198,11 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', onSu
           type="button"
           role="tab"
           aria-selected={mode === 'desk'}
-          onClick={switchToDeskMode}
+          onClick={() => {
+            setMode('desk');
+            setPhone('');
+            setPassword('');
+          }}
           className={`min-h-[38px] px-2 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
             mode === 'desk'
               ? 'bg-white dark:bg-dark-surface text-amber-700 dark:text-amber-400 shadow-sm font-semibold'

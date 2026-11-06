@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductImage } from '../../components/common/ProductImage';
 import {
@@ -27,19 +28,32 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
   const [suggestions, setSuggestions] = useState<any[] | null>(null);
 
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const parseLockRef = useRef(false);
 
   const handleParse = async () => {
+    if (parseLockRef.current) return;
+
+    if (!user) {
+      toast.warning('Please sign in to match items against your shop catalog and pricing.', {
+        id: 'smart-order-signin',
+      });
+      onNavigate('auth');
+      return;
+    }
+
     if (!rawText.trim()) {
       toast.warning('Please enter or paste an order message first.', { id: 'smart-order-empty' });
       return;
     }
 
+    parseLockRef.current = true;
     setIsParsing(true);
     setSuggestions(null);
 
     try {
-      const res = await api.post('/ai/parse-order', { rawText });
+      const res = await api.post('/ai/parse-order', { rawText }, { timeout: 95000 });
       if (res.data.success) {
         const enriched = (res.data.suggestions || []).map((item: any) => ({
           ...item,
@@ -73,6 +87,7 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
         { id: 'smart-order-error' }
       );
     } finally {
+      parseLockRef.current = false;
       setIsParsing(false);
     }
   };

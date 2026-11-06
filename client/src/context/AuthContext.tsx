@@ -36,7 +36,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (phone: string, password: string) => Promise<User>;
   loginWithGoogleDemo: () => Promise<User>;
-  requestOtp: (phone: string) => Promise<{ mockOtp: string; message: string }>;
+  requestOtp: (phone: string) => Promise<{ mockOtp?: string; isDemoMode?: boolean; message: string }>;
   verifyOtp: (phone: string, otp: string) => Promise<User>;
   register: (data: any) => Promise<User>;
   logout: () => void;
@@ -97,7 +97,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const requestOtp = async (phone: string) => {
     const res = await api.post('/auth/otp/request', { phone });
-    return { mockOtp: res.data.mockOtp, message: res.data.message };
+    return {
+      mockOtp: res.data.mockOtp,
+      isDemoMode: res.data.isDemoMode,
+      message: res.data.message,
+    };
   };
 
   const verifyOtp = async (phone: string, otp: string): Promise<User> => {

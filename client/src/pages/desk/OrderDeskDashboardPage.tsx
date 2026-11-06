@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import {
@@ -39,6 +39,10 @@ export const OrderDeskDashboardPage: React.FC = () => {
   const [aliasSku, setAliasSku] = useState('');
   const [isSavingAlias, setIsSavingAlias] = useState(false);
 
+  const statusLockRef = useRef(false);
+  const exportLockRef = useRef(false);
+  const aliasLockRef = useRef(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,8 +71,7 @@ export const OrderDeskDashboardPage: React.FC = () => {
         setOrders(res.data.orders);
         setMetrics(res.data.metrics);
       }
-    } catch (err) {
-      console.error('Failed to fetch desk orders:', err);
+    } catch {
       toast.error('Unable to load Order Desk queue.', { id: 'desk-fetch-err' });
     } finally {
       setIsLoading(false);
@@ -76,7 +79,8 @@ export const OrderDeskDashboardPage: React.FC = () => {
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string, note?: string) => {
-    if (isUpdatingStatus) return;
+    if (isUpdatingStatus || statusLockRef.current) return;
+    statusLockRef.current = true;
     setIsUpdatingStatus(true);
     try {
       const res = await api.patch(`/desk/orders/${orderId}/status`, {
@@ -110,12 +114,14 @@ export const OrderDeskDashboardPage: React.FC = () => {
         id: 'desk-status-err',
       });
     } finally {
+      statusLockRef.current = false;
       setIsUpdatingStatus(false);
     }
   };
 
   const handleExportTallyCsv = async () => {
-    if (isExporting) return;
+    if (isExporting || exportLockRef.current) return;
+    exportLockRef.current = true;
     setIsExporting(true);
     try {
       const response = await api.get('/desk/export/tally-csv', {
@@ -135,17 +141,19 @@ export const OrderDeskDashboardPage: React.FC = () => {
       toast.success('Tally ERP CSV exported and orders synced.', { id: 'tally-export' });
       fetchDeskOrders();
     } catch {
-      toast.error('No eligible submitted or approved orders for Tally CSV export.', {
+      toast.error('No approved orders waiting for Tally CSV export.', {
         id: 'tally-export-err',
       });
     } finally {
+      exportLockRef.current = false;
       setIsExporting(false);
     }
   };
 
   const handleSaveAlias = async () => {
-    if (!aliasKeyword.trim() || !aliasSku.trim() || !selectedOrder || isSavingAlias) return;
+    if (!aliasKeyword.trim() || !aliasSku.trim() || !selectedOrder || isSavingAlias || aliasLockRef.current) return;
 
+    aliasLockRef.current = true;
     setIsSavingAlias(true);
     try {
       const res = await api.post('/ai/alias', {
@@ -165,6 +173,7 @@ export const OrderDeskDashboardPage: React.FC = () => {
         { id: 'desk-alias-err' }
       );
     } finally {
+      aliasLockRef.current = false;
       setIsSavingAlias(false);
     }
   };

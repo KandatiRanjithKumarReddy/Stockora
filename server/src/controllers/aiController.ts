@@ -3,19 +3,25 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { Product } from '../models/Product.js';
 import { RetailerAlias } from '../models/RetailerAlias.js';
+import { RetailerPrice } from '../models/RetailerPrice.js';
 import { geminiCascade } from '../services/ai/geminiCascadeService.js';
 
 const parseOrderSchema = z.object({
-  rawText: z.string().min(3, 'Order message must be at least 3 characters'),
-  retailerId: z.string().optional(),
+  rawText: z.string().trim().min(3, 'Order message must be at least 3 characters').max(2000, 'Order message is too long'),
+  retailerId: z.string().trim().max(64).optional(),
 });
 
-const saveAliasSchema = z.object({
-  retailerId: z.string().min(1, 'Retailer ID is required'),
-  rawKeyword: z.string().min(2, 'Raw keyword must be at least 2 characters'),
-  mappedSku: z.string().min(1, 'Mapped SKU is required'),
-  preferredUnit: z.enum(['CASE', 'PIECE']).default('CASE'),
-});
+const saveAliasSchema = z
+  .object({
+    retailerId: z.string().trim().min(1, 'Retailer ID is required').max(64),
+    rawKeyword: z.string().trim().min(2, 'Raw keyword must be at least 2 characters').max(80, 'Keyword is too long'),
+    mappedSku: z.string().trim().max(40).optional(),
+    mappedProductId: z.string().trim().max(64).optional(),
+    preferredUnit: z.enum(['CASE', 'PIECE']).default('CASE'),
+  })
+  .refine((val) => Boolean(val.mappedSku || val.mappedProductId), {
+    message: 'Either mappedSku or mappedProductId is required.',
+  });
 
 export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const result = parseOrderSchema.safeParse(req.body);
@@ -25,7 +31,15 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
   }
 
   const { rawText, retailerId } = result.data;
-  const effectiveRetailerId = retailerId || (req.user?.retailerId ? req.user.retailerId._id?.toString() || req.user.retailerId.toString() : undefined);
+  const userRetailerId = req.user?.retailerId
+    ? ((req.user.retailerId as any)._id?.toString() || req.user.retailerId.toString())
+    : undefined;
+
+  // Retailers are strictly bound to their own shop ID; only Order Desk / Admin may specify a target retailerId
+  const effectiveRetailerId =
+    req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN'
+      ? retailerId || userRetailerId
+      : userRetailerId;
 
   // 1. Fetch active products
   const products = await Product.find({ isActive: true });
@@ -36,10 +50,23 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     unitsPerCase: p.unitsPerCase,
   }));
 
-  // 2. Fetch retailer-specific aliases
-  const aliases = effectiveRetailerId
-    ? await RetailerAlias.find({ retailerId: effectiveRetailerId })
-    : [];
+  // 2. Fetch retailer-specific aliases and custom pricing overrides
+  const now = new Date();
+  const [aliases, customPrices] = await Promise.all([
+    effectiveRetailerId ? RetailerAlias.find({ retailerId: effectiveRetailerId }) : Promise.resolve([]),
+    effectiveRetailerId
+      ? RetailerPrice.find({
+          retailerId: effectiveRetailerId,
+          validFrom: { $lte: now },
+          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const customPriceMap = new Map<string, number>();
+  customPrices.forEach((cp) => {
+    customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack);
+  });
 
   const aliasContext = aliases.map((a) => ({
     rawKeyword: a.rawKeyword,
@@ -63,14 +90,13 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     return;
   }
 
-  // 4. Validate matches against real DB products and attach live metadata
-  const productSkuMap = new Map();
+  // 4. Validate matches against real DB products and attach live metadata + custom retailer prices
+  const productSkuMap = new Map<string, any>();
   products.forEach((p) => productSkuMap.set(p.sku, p));
 
   const validatedSuggestions = cascadeResult.suggestions.map((item) => {
     const product = productSkuMap.get(item.suggestedSku);
 
-    // If AI suggested an invalid SKU, flag as unmatched
     if (!product) {
       return {
         ...item,
@@ -80,18 +106,27 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     }
 
     const availableCases = Math.max(0, product.stockCasesAvailable - product.stockCasesReserved);
+    const customPackPrice = customPriceMap.get(product._id.toString());
+    const effectivePackPrice =
+      customPackPrice !== undefined ? customPackPrice : product.dealerPricePerPack;
+    const effectiveCasePrice = Math.round(effectivePackPrice * product.unitsPerCase * 100) / 100;
 
-    // Also look up alternative products
     const alternatives = (item.alternativeSkus || [])
       .map((altSku) => productSkuMap.get(altSku))
       .filter(Boolean)
-      .map((altP) => ({
-        sku: altP.sku,
-        name: altP.name,
-        packSize: altP.packSize,
-        dealerPricePerPack: altP.dealerPricePerPack,
-        calculatedCasePrice: altP.calculatedCasePrice,
-      }));
+      .map((altP) => {
+        const altCustom = customPriceMap.get(altP._id.toString());
+        const altPackPrice = altCustom !== undefined ? altCustom : altP.dealerPricePerPack;
+        return {
+          _id: altP._id,
+          sku: altP.sku,
+          name: altP.name,
+          packSize: altP.packSize,
+          unitsPerCase: altP.unitsPerCase,
+          dealerPricePerPack: altPackPrice,
+          calculatedCasePrice: Math.round(altPackPrice * altP.unitsPerCase * 100) / 100,
+        };
+      });
 
     return {
       originalPhrase: item.originalPhrase,
@@ -109,10 +144,16 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
         name: product.name,
         packSize: product.packSize,
         unitsPerCase: product.unitsPerCase,
-        dealerPricePerPack: product.dealerPricePerPack,
-        calculatedCasePrice: product.calculatedCasePrice,
+        dealerPricePerPack: effectivePackPrice,
+        calculatedCasePrice: effectiveCasePrice,
+        hasCustomPrice: customPackPrice !== undefined,
         availableCases,
-        stockStatus: availableCases > 0 ? (availableCases <= product.lowStockThresholdCases ? 'LOW_STOCK' : 'IN_STOCK') : 'OUT_OF_STOCK',
+        stockStatus:
+          availableCases > 0
+            ? availableCases <= product.lowStockThresholdCases
+              ? 'LOW_STOCK'
+              : 'IN_STOCK'
+            : 'OUT_OF_STOCK',
         imageUrl: product.imageUrl,
       },
     };
@@ -142,11 +183,32 @@ export const saveRetailerAlias = async (req: AuthenticatedRequest, res: Response
     return;
   }
 
-  const { retailerId, rawKeyword, mappedSku, preferredUnit } = result.data;
-  const product = await Product.findOne({ sku: mappedSku });
+  const { retailerId, rawKeyword, mappedSku, mappedProductId, preferredUnit } = result.data;
+
+  // Enforce strict tenant isolation: a RETAILER may only save aliases for their own shop
+  const isStaff = req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN';
+  if (!isStaff) {
+    const ownRetailerId = req.user?.retailerId
+      ? ((req.user.retailerId as any)._id?.toString() || req.user.retailerId.toString())
+      : null;
+    if (!ownRetailerId || ownRetailerId !== retailerId) {
+      res.status(403).json({
+        success: false,
+        message: 'Forbidden. You cannot modify product aliases for another retailer.',
+      });
+      return;
+    }
+  }
+
+  const product = mappedSku
+    ? await Product.findOne({ sku: mappedSku.toUpperCase().trim(), isActive: true })
+    : await Product.findOne({ _id: mappedProductId, isActive: true });
 
   if (!product) {
-    res.status(404).json({ success: false, message: `Product with SKU ${mappedSku} not found.` });
+    res.status(404).json({
+      success: false,
+      message: `Matching active catalog product not found.`,
+    });
     return;
   }
 
@@ -157,10 +219,7 @@ export const saveRetailerAlias = async (req: AuthenticatedRequest, res: Response
       mappedSku: product.sku,
       preferredUnit,
       confidenceScore: 1.0,
-      createdFrom:
-        req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN'
-          ? 'ORDER_DESK_CORRECTION'
-          : 'RETAILER_CONFIRMATION',
+      createdFrom: isStaff ? 'ORDER_DESK_CORRECTION' : 'RETAILER_CONFIRMATION',
     },
     { upsert: true, new: true }
   );
@@ -171,4 +230,3 @@ export const saveRetailerAlias = async (req: AuthenticatedRequest, res: Response
     alias,
   });
 };
-

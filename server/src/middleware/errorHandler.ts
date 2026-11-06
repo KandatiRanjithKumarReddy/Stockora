@@ -10,7 +10,7 @@ export class AppError extends Error {
   }
 }
 
-const SENSITIVE_PATTERNS = /gemini|googlegenerativeai|generativelanguage|api_key|\.env|mongodb\+srv|stack/i;
+const SENSITIVE_PATTERNS = /gemini|googlegenerativeai|generativelanguage|api_key|\.env|mongodb\+srv|stack|cast to objectid|e11000/i;
 
 export const errorHandler = (
   err: any,
@@ -18,11 +18,44 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
+  // Normalize Mongoose & Express body-parser operational errors cleanly
+  if (err?.name === 'CastError') {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid resource identifier.',
+    });
+    return;
+  }
+
+  if (err?.code === 11000) {
+    res.status(409).json({
+      success: false,
+      message: 'A record with those details already exists. Please retry.',
+    });
+    return;
+  }
+
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid JSON request payload.',
+    });
+    return;
+  }
+
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({
+      success: false,
+      message: 'Request payload exceeds maximum allowed size.',
+    });
+    return;
+  }
+
   const statusCode = err instanceof AppError ? err.statusCode : err.statusCode || 500;
   const rawMessage = String(err?.message || 'Internal Server Error');
 
-  // Always log full technical details internally on the server
-  console.error(`[Error] ${req.method} ${req.originalUrl} - ${statusCode}: ${rawMessage}`);
+  // Log concise operational error code internally without leaking secrets
+  console.error(`[Error] ${req.method} ${req.originalUrl} - ${statusCode}: ${err?.name || 'Error'}`);
 
   // Never expose internal SDK/provider/infrastructure messages or stack traces to clients
   const isSafeClientError =

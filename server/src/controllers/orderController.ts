@@ -10,15 +10,36 @@ import { calculateOrderFinancials } from '../services/schemeEngine.js';
 import { env } from '../config/env.js';
 
 const createOrderSchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      orderedCases: z.number().int().min(1),
-    })
-  ).min(1, 'Order must contain at least 1 item'),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().trim().min(1).max(64),
+        orderedCases: z.number().int().min(1).max(10000),
+      })
+    )
+    .min(1, 'Order must contain at least 1 item')
+    .max(100, 'Order exceeds maximum distinct items'),
   source: z.enum(['CATALOG', 'AI_WHATSAPP_PARSE', 'DESK_MANUAL']).default('CATALOG'),
-  rawTextOrder: z.string().optional(),
+  rawTextOrder: z.string().trim().max(2000).optional(),
 });
+
+async function generateNextOrderNumber(dateStr: string): Promise<string> {
+  const prefix = `STK-${dateStr}-`;
+  const latestToday = await Order.findOne({ orderNumber: { $regex: `^${prefix}` } })
+    .sort({ orderNumber: -1 })
+    .select('orderNumber')
+    .lean();
+
+  if (latestToday?.orderNumber) {
+    const tail = parseInt(latestToday.orderNumber.slice(prefix.length), 10);
+    if (!Number.isNaN(tail)) {
+      return `${prefix}${String(tail + 1).padStart(4, '0')}`;
+    }
+  }
+
+  const totalCount = await Order.countDocuments();
+  return `${prefix}${String(totalCount + 101).padStart(4, '0')}`;
+}
 
 export const createOrder = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user || !req.user.retailerId) {
@@ -32,8 +53,19 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     return;
   }
 
-  const { items, source, rawTextOrder } = result.data;
-  const retailerId = req.user.retailerId._id || req.user.retailerId;
+  const { items: rawItems, source, rawTextOrder } = result.data;
+
+  // Merge duplicate productId entries so split lines cannot bypass stock pool checks
+  const mergedMap = new Map<string, number>();
+  for (const line of rawItems) {
+    mergedMap.set(line.productId, (mergedMap.get(line.productId) || 0) + line.orderedCases);
+  }
+  const items = Array.from(mergedMap.entries()).map(([productId, orderedCases]) => ({
+    productId,
+    orderedCases,
+  }));
+
+  const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
   const retailer = await Retailer.findById(retailerId);
 
   if (!retailer || !retailer.isActive) {
@@ -41,12 +73,20 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     return;
   }
 
+  if (retailer.creditStatus === 'BLOCKED') {
+    res.status(403).json({
+      success: false,
+      message: 'Your credit ledger is currently blocked. Please contact Company A Order Desk.',
+    });
+    return;
+  }
+
   const productIds = items.map((i) => i.productId);
   const products = await Product.find({ _id: { $in: productIds }, isActive: true });
-  const productMap = new Map();
+  const productMap = new Map<string, any>();
   products.forEach((p) => productMap.set(p._id.toString(), p));
 
-  // 1. Stock Availability & Reservation Check
+  // 1. Preliminary Product & Stock Validation
   for (const item of items) {
     const product = productMap.get(item.productId);
     if (!product) {
@@ -64,22 +104,27 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     }
   }
 
-  // 2. Fetch Active Schemes & Custom Prices
+  // 2. Fetch Active Schemes & Custom Shop Prices
   const now = new Date();
-  const schemes = await Scheme.find({
-    primaryProductId: { $in: productIds },
-    isActive: true,
-    startDate: { $lte: now },
-    endDate: { $gte: now },
-  });
-  const schemeMap = new Map();
+  const [schemes, customPrices] = await Promise.all([
+    Scheme.find({
+      primaryProductId: { $in: productIds },
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }),
+    RetailerPrice.find({
+      retailerId: retailer._id,
+      productId: { $in: productIds },
+      validFrom: { $lte: now },
+      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+    }),
+  ]);
+
+  const schemeMap = new Map<string, any>();
   schemes.forEach((s) => schemeMap.set(s.primaryProductId.toString(), s));
 
-  const customPrices = await RetailerPrice.find({
-    retailerId: retailer._id,
-    productId: { $in: productIds },
-  });
-  const customPriceMap = new Map();
+  const customPriceMap = new Map<string, number>();
   customPrices.forEach((cp) => customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack));
 
   // 3. Deterministic Scheme Engine Calculation
@@ -95,11 +140,38 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
 
   const financials = calculateOrderFinancials(calculationInput);
 
-  // 4. Concurrency Stock Reservation
+  // 4. Atomic Conditional Stock Reservation with Automatic Rollback on Contention
+  const reservedSoFar: Array<{ productId: string; orderedCases: number }> = [];
   for (const item of items) {
-    await Product.findByIdAndUpdate(item.productId, {
-      $inc: { stockCasesReserved: item.orderedCases },
-    });
+    const updatedProduct = await Product.findOneAndUpdate(
+      {
+        _id: item.productId,
+        isActive: true,
+        $expr: {
+          $gte: [{ $subtract: ['$stockCasesAvailable', '$stockCasesReserved'] }, item.orderedCases],
+        },
+      },
+      {
+        $inc: { stockCasesReserved: item.orderedCases },
+      },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      for (const prev of reservedSoFar) {
+        await Product.findByIdAndUpdate(prev.productId, {
+          $inc: { stockCasesReserved: -prev.orderedCases },
+        });
+      }
+      const prodName = productMap.get(item.productId)?.name || 'requested item';
+      res.status(400).json({
+        success: false,
+        message: `Insufficient live stock for ${prodName}. Please refresh your cart quantities.`,
+      });
+      return;
+    }
+
+    reservedSoFar.push(item);
   }
 
   // 5. Credit Hold Policy (Option B)
@@ -114,41 +186,64 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     reviewNote = `Credit limit exceeded (Exposure: ₹${totalExposure.toLocaleString('en-IN')} > Limit: ₹${retailer.creditLimit.toLocaleString('en-IN')}). Pending Order Desk review.`;
   }
 
-  // 6. Generate Unique Order Number
-  const count = await Order.countDocuments();
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const orderNumber = `STK-${dateStr}-${String(count + 101).padStart(4, '0')}`;
-
   const reservationExpiresAt = new Date(
     Date.now() + env.STOCK_RESERVATION_EXPIRY_MINUTES * 60 * 1000
   );
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  const order = await Order.create({
-    orderNumber,
-    retailerId: retailer._id,
-    source,
-    status,
-    rawTextOrder,
-    reservationExpiresAt,
-    items: financials.items,
-    subtotal: financials.subtotal,
-    totalDiscount: financials.totalDiscount,
-    totalCgst: financials.totalCgst,
-    totalSgst: financials.totalSgst,
-    totalTax: financials.totalTax,
-    finalPayableAmount: financials.finalPayableAmount,
-    creditCheck: {
-      passed: !flaggedHold,
-      currentBalanceSnapshot: retailer.outstandingBalance,
-      creditLimitSnapshot: retailer.creditLimit,
-      orderAmount: financials.finalPayableAmount,
-      flaggedHold,
-      reviewNote,
-    },
-    tallyExport: {
-      isExported: false,
-    },
-  });
+  // 6. Create Order with Collision-Safe Order Number Retry
+  let order: any = null;
+  try {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const orderNumber =
+        attempt === 0
+          ? await generateNextOrderNumber(dateStr)
+          : `STK-${dateStr}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+
+      try {
+        order = await Order.create({
+          orderNumber,
+          retailerId: retailer._id,
+          source,
+          status,
+          rawTextOrder,
+          reservationExpiresAt,
+          items: financials.items,
+          subtotal: financials.subtotal,
+          totalDiscount: financials.totalDiscount,
+          totalCgst: financials.totalCgst,
+          totalSgst: financials.totalSgst,
+          totalTax: financials.totalTax,
+          finalPayableAmount: financials.finalPayableAmount,
+          creditCheck: {
+            passed: !flaggedHold,
+            currentBalanceSnapshot: retailer.outstandingBalance,
+            creditLimitSnapshot: retailer.creditLimit,
+            orderAmount: financials.finalPayableAmount,
+            flaggedHold,
+            reviewNote,
+          },
+          tallyExport: {
+            isExported: false,
+          },
+        });
+        break;
+      } catch (createErr: any) {
+        if (createErr?.code === 11000 && attempt < 4) {
+          continue;
+        }
+        throw createErr;
+      }
+    }
+  } catch (err) {
+    // Roll back stock reservation if order persistence fails
+    for (const prev of reservedSoFar) {
+      await Product.findByIdAndUpdate(prev.productId, {
+        $inc: { stockCasesReserved: -prev.orderedCases },
+      });
+    }
+    throw err;
+  }
 
   res.status(201).json({
     success: true,
@@ -174,7 +269,7 @@ export const getMyOrders = async (req: AuthenticatedRequest, res: Response): Pro
     return;
   }
 
-  const retailerId = req.user.retailerId._id || req.user.retailerId;
+  const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
   const orders = await Order.find({ retailerId }).sort({ createdAt: -1 });
 
   res.json({
@@ -193,9 +288,10 @@ export const getOrderById = async (req: AuthenticatedRequest, res: Response): Pr
     return;
   }
 
-  // Access check: Only order's retailer or Order Desk/Admin
   if (req.user?.role === 'RETAILER') {
-    const retailerId = req.user.retailerId ? ((req.user.retailerId as any)._id || req.user.retailerId) : null;
+    const retailerId = req.user.retailerId
+      ? ((req.user.retailerId as any)._id || req.user.retailerId)
+      : null;
     if (!retailerId || (order.retailerId as any)._id.toString() !== retailerId.toString()) {
       res.status(403).json({ success: false, message: "Unauthorized. You cannot view another retailer's order." });
       return;

@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   ArrowRight,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 
 interface CatalogPageProps {
@@ -42,7 +43,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, selectedBrand, search, inStockOnly]);
+  }, [selectedCategory, selectedBrand, search, inStockOnly, user?.id]);
 
   const fetchMetadata = async () => {
     try {
@@ -51,8 +52,8 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
         setCategories(res.data.categories);
         setBrands(res.data.brands);
       }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
+    } catch {
+      // Categories filter remains at default ALL
     }
   };
 
@@ -69,8 +70,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
       if (res.data.success) {
         setProducts(res.data.products);
       }
-    } catch (err) {
-      console.error('Failed to fetch products:', err);
+    } catch {
       toast.error('Unable to load wholesale catalog.', { id: 'catalog-fetch-err' });
     } finally {
       setIsLoading(false);
@@ -263,12 +263,16 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
                     <div className="absolute top-3 left-3">
                       {p.stockStatus === 'IN_STOCK' && (
                         <span className="px-2.5 py-1 rounded-md bg-emerald-700 text-white text-xs font-semibold shadow-sm tabular-nums">
-                          {p.availableCases} cases available
+                          {p.availableCases !== null && p.availableCases !== undefined
+                            ? `${p.availableCases} cases available`
+                            : 'In stock'}
                         </span>
                       )}
                       {p.stockStatus === 'LOW_STOCK' && (
                         <span className="px-2.5 py-1 rounded-md bg-amber-600 text-white text-xs font-semibold shadow-sm tabular-nums">
-                          Low stock: {p.availableCases} left
+                          {p.availableCases !== null && p.availableCases !== undefined
+                            ? `Low stock: ${p.availableCases} left`
+                            : 'Low stock'}
                         </span>
                       )}
                       {p.stockStatus === 'OUT_OF_STOCK' && (
@@ -316,82 +320,120 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
                     )}
 
                     {/* Wholesale Price Transparency Box */}
-                    <div className="p-3.5 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/80 dark:border-dark-border flex items-baseline justify-between gap-2 tabular-nums">
-                      <div>
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                          Case Rate ({p.isGstIncluded ? 'Incl. GST' : `Excl. ${p.gstRatePercent}% GST`})
+                    {p.priceRestricted || p.calculatedCasePrice === null ? (
+                      <div className="p-3.5 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/80 dark:border-dark-border flex items-center justify-between gap-2 tabular-nums">
+                        <div>
+                          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Shop Wholesale Rate ({p.isGstIncluded ? 'Incl. GST' : `Excl. ${p.gstRatePercent}% GST`})
+                          </div>
+                          <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mt-0.5 flex items-center gap-1.5">
+                            <Lock className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                            <span>Sign in to view your shop rate</span>
+                          </div>
                         </div>
-                        <div className="text-lg font-bold text-zinc-900 dark:text-white mt-0.5">
-                          ₹{p.calculatedCasePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Retail MRP
+                          </div>
+                          <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                            ₹{p.mrp} / pack
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                          Dealer / Pack
+                    ) : (
+                      <div className="p-3.5 rounded-lg bg-zinc-50 dark:bg-dark-elevated border border-zinc-200/80 dark:border-dark-border flex items-baseline justify-between gap-2 tabular-nums">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            <span>Case Rate ({p.isGstIncluded ? 'Incl. GST' : `Excl. ${p.gstRatePercent}% GST`})</span>
+                            {p.hasCustomPrice && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-semibold">
+                                Shop Rate
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-lg font-bold text-zinc-900 dark:text-white mt-0.5">
+                            ₹{p.calculatedCasePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
                         </div>
-                        <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
-                          ₹{p.dealerPricePerPack.toFixed(2)}
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through ml-1.5">
-                            MRP ₹{p.mrp}
-                          </span>
+                        <div className="text-right">
+                          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Dealer / Pack
+                          </div>
+                          <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                            ₹{p.dealerPricePerPack.toFixed(2)}
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500 line-through ml-1.5">
+                              MRP ₹{p.mrp}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Card Footer: Touch-Friendly Stepper + Add */}
                 <div className="px-5 pb-5 pt-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className="inline-flex items-center rounded-lg border border-zinc-300 dark:border-dark-borderStrong bg-zinc-50 dark:bg-dark-elevated">
-                      <button
-                        type="button"
-                        onClick={() => handleStep(p._id, -1)}
-                        disabled={isOutOfStock}
-                        aria-label={`Decrease cases for ${p.name}`}
-                        className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-l-lg disabled:opacity-40 transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-9 text-center text-sm font-semibold text-zinc-900 dark:text-white tabular-nums">
-                        {getStepperQty(p._id)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleStep(p._id, 1)}
-                        disabled={isOutOfStock}
-                        aria-label={`Increase cases for ${p.name}`}
-                        className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-r-lg disabled:opacity-40 transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-
+                  {p.priceRestricted || p.calculatedCasePrice === null ? (
                     <button
                       type="button"
-                      onClick={() => handleAdd(p)}
-                      disabled={isOutOfStock}
-                      className={`flex-1 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors inline-flex items-center justify-center gap-2 tabular-nums ${
-                        isOutOfStock
-                          ? 'bg-zinc-200 dark:bg-dark-elevated text-zinc-500 dark:text-zinc-500 border border-zinc-300 dark:border-dark-border cursor-not-allowed'
-                          : inCart > 0
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
-                          : 'bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-sm'
-                      }`}
+                      onClick={() => onNavigate('auth')}
+                      className="btn-secondary w-full"
                     >
-                      {inCart > 0 ? (
-                        <>
-                          <Check className="w-4 h-4 shrink-0" />
-                          <span>{inCart} in Cart (+{getStepperQty(p._id)})</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4 shrink-0" />
-                          <span>Add Case{getStepperQty(p._id) > 1 ? 's' : ''}</span>
-                        </>
-                      )}
+                      <Lock className="w-4 h-4 shrink-0" />
+                      <span>Sign in for Dealer Rate</span>
                     </button>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5">
+                      <div className="inline-flex items-center rounded-lg border border-zinc-300 dark:border-dark-borderStrong bg-zinc-50 dark:bg-dark-elevated">
+                        <button
+                          type="button"
+                          onClick={() => handleStep(p._id, -1)}
+                          disabled={isOutOfStock}
+                          aria-label={`Decrease cases for ${p.name}`}
+                          className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-l-lg disabled:opacity-40 transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-9 text-center text-sm font-semibold text-zinc-900 dark:text-white tabular-nums">
+                          {getStepperQty(p._id)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStep(p._id, 1)}
+                          disabled={isOutOfStock}
+                          aria-label={`Increase cases for ${p.name}`}
+                          className="min-w-[40px] min-h-[44px] flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-dark-hover rounded-r-lg disabled:opacity-40 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdd(p)}
+                        disabled={isOutOfStock}
+                        className={`flex-1 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors inline-flex items-center justify-center gap-2 tabular-nums ${
+                          isOutOfStock
+                            ? 'bg-zinc-200 dark:bg-dark-elevated text-zinc-500 dark:text-zinc-500 border border-zinc-300 dark:border-dark-border cursor-not-allowed'
+                            : inCart > 0
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                            : 'bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500 text-white shadow-sm'
+                        }`}
+                      >
+                        {inCart > 0 ? (
+                          <>
+                            <Check className="w-4 h-4 shrink-0" />
+                            <span>{inCart} in Cart (+{getStepperQty(p._id)})</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-4 h-4 shrink-0" />
+                            <span>Add Case{getStepperQty(p._id) > 1 ? 's' : ''}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </article>
             );

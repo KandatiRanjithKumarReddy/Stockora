@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { useAuth } from './AuthContext';
 
 export interface CartItem {
   productId: string;
@@ -50,14 +51,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [calculation, setCalculation] = useState<CartCalculation | null>(null);
   const [isLoadingCalc, setIsLoadingCalc] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     localStorage.setItem('stockora_cart', JSON.stringify(cart));
     recalculateCart();
-  }, [cart]);
+  }, [cart, user?.id]);
 
   const recalculateCart = async () => {
-    if (cart.length === 0) {
+    if (cart.length === 0 || !user) {
       setCalculation(null);
       return;
     }
@@ -74,8 +76,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.data.success) {
         setCalculation(res.data);
       }
-    } catch (err) {
-      console.error('Failed to recalculate cart:', err);
+    } catch {
+      // Handled gracefully by CartPage summary fallback
     } finally {
       setIsLoadingCalc(false);
     }

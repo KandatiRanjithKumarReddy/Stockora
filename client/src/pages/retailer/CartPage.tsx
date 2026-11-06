@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -27,6 +27,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
+  const submitLockRef = useRef(false);
 
   const handleRemoveItem = (item: any) => {
     removeFromCart(item.productId);
@@ -40,8 +41,9 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
       return;
     }
 
-    if (cart.length === 0 || isSubmitting) return;
+    if (cart.length === 0 || isSubmitting || submitLockRef.current) return;
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     let smartOrderRaw: string | undefined;
@@ -86,6 +88,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
         { id: 'order-submit-error' }
       );
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };

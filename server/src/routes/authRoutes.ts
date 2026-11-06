@@ -9,16 +9,17 @@ import {
   logout,
 } from '../controllers/authController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
 
-router.post('/login', login);
-router.post('/register', register);
-router.post('/otp/request', requestOtp);
-router.post('/otp/verify', verifyOtp);
-router.post('/google', googleAuth);
-router.get('/me', requireAuth, getMe);
-router.post('/logout', logout);
+router.post('/login', asyncHandler(login));
+router.post('/register', asyncHandler(register));
+router.post('/otp/request', asyncHandler(requestOtp));
+router.post('/otp/verify', asyncHandler(verifyOtp));
+router.post('/google', asyncHandler(googleAuth));
+router.get('/me', asyncHandler(requireAuth), asyncHandler(getMe));
+router.post('/logout', asyncHandler(logout));
 
 export default router;
 

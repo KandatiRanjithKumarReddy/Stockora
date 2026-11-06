@@ -39,8 +39,7 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
       if (res.data.success) {
         setOrders(res.data.orders);
       }
-    } catch (err) {
-      console.error('Failed to fetch orders:', err);
+    } catch {
       toast.error('Unable to load your order history.', { id: 'my-orders-err' });
     } finally {
       setIsLoading(false);

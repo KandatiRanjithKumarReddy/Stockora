@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider, User } from './context/AuthContext';
+import { AuthProvider, User, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
@@ -41,6 +41,7 @@ function readViewFromHash(): string {
 const MainApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>(() => readViewFromHash());
   const { itemCount } = useCart();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     const onHashChange = () => {
@@ -49,6 +50,26 @@ const MainApp: React.FC = () => {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  // Enforce client-side role & authentication route boundaries
+  useEffect(() => {
+    if (isLoading) return;
+    const isStaff = user?.role === 'ORDER_DESK' || user?.role === 'ADMIN';
+
+    if (currentView === 'desk-dashboard' && !isStaff) {
+      handleNavigate(user ? 'catalog' : 'desk-auth');
+      return;
+    }
+
+    if (currentView === 'my-orders' && !user) {
+      handleNavigate('auth');
+      return;
+    }
+
+    if ((currentView === 'cart' || currentView === 'my-orders') && isStaff) {
+      handleNavigate('desk-dashboard');
+    }
+  }, [currentView, user, isLoading]);
 
   const handleNavigate = (view: string) => {
     const normalized = VALID_VIEWS.has(view) ? view : 'home';

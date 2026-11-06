@@ -9,13 +9,16 @@ import {
   RetailerAlias,
   RetailerPrice,
   Order,
+  Contact,
+  Feedback,
+  AIProcessingLog,
 } from '../models/index.js';
 
 async function seed() {
-  console.log('[Seed] Connecting to MongoDB Atlas...');
+  console.log('[Seed] Connecting to MongoDB...');
   await connectDB();
 
-  console.log('[Seed] Cleaning up existing demo data...');
+  console.log('[Seed] Cleaning up existing demo and test data...');
   await Promise.all([
     User.deleteMany({}),
     Retailer.deleteMany({}),
@@ -24,6 +27,9 @@ async function seed() {
     RetailerAlias.deleteMany({}),
     RetailerPrice.deleteMany({}),
     Order.deleteMany({}),
+    Contact.deleteMany({}),
+    Feedback.deleteMany({}),
+    AIProcessingLog.deleteMany({}),
   ]);
 
   console.log('[Seed] Seeding Retailers in Jabalpur (M.P.)...');
@@ -221,6 +227,15 @@ async function seed() {
   const pGlucose = createdProducts.find((p) => p.sku === 'SKU-BS-075')!;
   const pDetergent = createdProducts.find((p) => p.sku === 'SKU-DT-1KG')!;
   const pTea = createdProducts.find((p) => p.sku === 'SKU-TE-250')!;
+  const pGlucoseFamily = createdProducts.find((p) => p.sku === 'SKU-BS-120')!;
+
+  console.log('[Seed] Seeding Custom Retailer Price Override...');
+  await RetailerPrice.create({
+    retailerId: retailer1._id,
+    productId: pGlucoseFamily._id,
+    customDealerPricePerPack: 15.9, // Shop-specific negotiated rate (vs 16.50 standard)
+    validFrom: new Date(Date.now() - 24 * 60 * 60 * 1000),
+  });
 
   console.log('[Seed] Seeding Active Schemes...');
   const now = new Date();

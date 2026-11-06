@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { Product } from '../models/Product.js';
 import { Scheme } from '../models/Scheme.js';
 import { RetailerPrice } from '../models/RetailerPrice.js';
+import { escapeRegex } from '../utils/asyncHandler.js';
 
 export const getProducts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { search, category, brand, inStock } = req.query;
@@ -10,21 +11,24 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
   const query: any = { isActive: true };
 
   if (category && category !== 'ALL') {
-    query.category = category;
+    query.category = String(category).slice(0, 60);
   }
 
   if (brand && brand !== 'ALL') {
-    query.brand = brand;
+    query.brand = String(brand).slice(0, 60);
   }
 
   if (search) {
-    const searchRegex = new RegExp(String(search).trim(), 'i');
-    query.$or = [
-      { name: searchRegex },
-      { sku: searchRegex },
-      { brand: searchRegex },
-      { category: searchRegex },
-    ];
+    const safeSearch = escapeRegex(String(search).trim().slice(0, 80));
+    if (safeSearch) {
+      const searchRegex = new RegExp(safeSearch, 'i');
+      query.$or = [
+        { name: searchRegex },
+        { sku: searchRegex },
+        { brand: searchRegex },
+        { category: searchRegex },
+      ];
+    }
   }
 
   const products = await Product.find(query).sort({ category: 1, name: 1 });
@@ -42,18 +46,24 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
     schemeMap.set(s.primaryProductId.toString(), s);
   });
 
-  // If authenticated retailer, load custom price overrides
-  let customPriceMap = new Map();
+  const isAuthorizedViewer = Boolean(req.user);
+  const isStaff = req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN';
+
+  // If authenticated retailer, load custom shop price overrides
+  const customPriceMap = new Map<string, number>();
   if (req.user?.retailerId) {
+    const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
     const customPrices = await RetailerPrice.find({
-      retailerId: req.user.retailerId._id || req.user.retailerId,
+      retailerId,
+      validFrom: { $lte: now },
+      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
     });
     customPrices.forEach((cp) => {
       customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack);
     });
   }
 
-  // Format response with stock calculation and scheme details
+  // Format response with strict B2B price privacy for unauthenticated visitors
   const enrichedProducts = products.map((p) => {
     const customPrice = customPriceMap.get(p._id.toString());
     const effectivePackPrice = customPrice !== undefined ? customPrice : p.dealerPricePerPack;
@@ -79,15 +89,20 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
       unitsPerCase: p.unitsPerCase,
       caseWeightKg: p.caseWeightKg,
       mrp: p.mrp,
-      dealerPricePerPack: effectivePackPrice,
-      originalBasePackPrice: p.dealerPricePerPack,
-      hasCustomPrice: customPrice !== undefined,
-      calculatedCasePrice: effectiveCasePrice,
+      dealerPricePerPack: isAuthorizedViewer ? effectivePackPrice : null,
+      originalBasePackPrice: isAuthorizedViewer ? p.dealerPricePerPack : null,
+      hasCustomPrice: isAuthorizedViewer ? customPrice !== undefined : false,
+      calculatedCasePrice: isAuthorizedViewer ? effectiveCasePrice : null,
+      priceRestricted: !isAuthorizedViewer,
       gstRatePercent: p.gstRatePercent,
       isGstIncluded: p.isGstIncluded ?? false,
-      stockCasesAvailable: p.stockCasesAvailable,
-      stockCasesReserved: p.stockCasesReserved,
-      availableCases,
+      ...(isStaff
+        ? {
+            stockCasesAvailable: p.stockCasesAvailable,
+            stockCasesReserved: p.stockCasesReserved,
+          }
+        : {}),
+      availableCases: isAuthorizedViewer ? availableCases : null,
       stockStatus,
       imageUrl: p.imageUrl,
       activeScheme: activeScheme
@@ -105,10 +120,11 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
   });
 
   if (inStock === 'true') {
+    const filtered = enrichedProducts.filter((p) => p.stockStatus !== 'OUT_OF_STOCK');
     res.json({
       success: true,
-      count: enrichedProducts.filter((p) => p.availableCases > 0).length,
-      products: enrichedProducts.filter((p) => p.availableCases > 0),
+      count: filtered.length,
+      products: filtered,
     });
     return;
   }
@@ -124,7 +140,7 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response): 
   const { id } = req.params;
   const product = await Product.findById(id);
 
-  if (!product) {
+  if (!product || !product.isActive) {
     res.status(404).json({ success: false, message: 'Product not found.' });
     return;
   }
@@ -137,11 +153,56 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response): 
     endDate: { $gte: now },
   });
 
+  const isAuthorizedViewer = Boolean(req.user);
+  let effectivePackPrice = product.dealerPricePerPack;
+  let hasCustomPrice = false;
+
+  if (req.user?.retailerId) {
+    const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
+    const customPrice = await RetailerPrice.findOne({
+      retailerId,
+      productId: product._id,
+      validFrom: { $lte: now },
+      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+    });
+    if (customPrice) {
+      effectivePackPrice = customPrice.customDealerPricePerPack;
+      hasCustomPrice = true;
+    }
+  }
+
+  const availableCases = Math.max(0, product.stockCasesAvailable - product.stockCasesReserved);
+  let stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
+  if (availableCases <= 0) {
+    stockStatus = 'OUT_OF_STOCK';
+  } else if (availableCases <= product.lowStockThresholdCases) {
+    stockStatus = 'LOW_STOCK';
+  }
+
   res.json({
     success: true,
     product: {
-      ...product.toObject(),
-      availableCases: Math.max(0, product.stockCasesAvailable - product.stockCasesReserved),
+      _id: product._id,
+      sku: product.sku,
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      packSize: product.packSize,
+      hsnCode: product.hsnCode,
+      unitsPerCase: product.unitsPerCase,
+      caseWeightKg: product.caseWeightKg,
+      mrp: product.mrp,
+      dealerPricePerPack: isAuthorizedViewer ? effectivePackPrice : null,
+      calculatedCasePrice: isAuthorizedViewer
+        ? Math.round(effectivePackPrice * product.unitsPerCase * 100) / 100
+        : null,
+      hasCustomPrice: isAuthorizedViewer ? hasCustomPrice : false,
+      priceRestricted: !isAuthorizedViewer,
+      gstRatePercent: product.gstRatePercent,
+      isGstIncluded: product.isGstIncluded ?? false,
+      availableCases: isAuthorizedViewer ? availableCases : null,
+      stockStatus,
+      imageUrl: product.imageUrl,
       activeScheme: scheme,
     },
   });
@@ -157,4 +218,3 @@ export const getCategories = async (_req: AuthenticatedRequest, res: Response): 
     brands,
   });
 };
-

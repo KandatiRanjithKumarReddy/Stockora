@@ -7,10 +7,10 @@ export const connectDB = async (): Promise<void> => {
   }
 
   try {
-    const conn = await mongoose.connect(env.MONGODB_URI);
-    console.log(`[MongoDB Atlas] Connected successfully: ${conn.connection.host}`);
+    await mongoose.connect(env.MONGODB_URI);
+    console.log('[MongoDB] Database connection established.');
   } catch (error) {
-    console.error('[MongoDB Atlas] Connection failed:', error);
+    console.error('[MongoDB] Connection failed.');
     process.exit(1);
   }
 };

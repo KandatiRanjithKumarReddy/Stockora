@@ -4,20 +4,20 @@ import { Contact } from '../models/Contact.js';
 import { Feedback } from '../models/Feedback.js';
 
 const contactSchema = z.object({
-  fullName: z.string().min(2, 'Full name is required'),
-  email: z.string().email('Valid email address is required'),
-  phone: z.string().optional(),
-  subject: z.string().min(3, 'Subject is required'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
+  fullName: z.string().trim().min(2, 'Full name is required').max(100, 'Name is too long'),
+  email: z.string().trim().email('Valid email address is required').max(150, 'Email is too long'),
+  phone: z.string().trim().max(20, 'Phone number is too long').optional(),
+  subject: z.string().trim().min(3, 'Subject is required').max(160, 'Subject is too long'),
+  message: z.string().trim().min(10, 'Message must be at least 10 characters').max(2000, 'Message is too long'),
 });
 
 const feedbackSchema = z.object({
   category: z.enum(['GENERAL', 'BUG', 'ORDER_ISSUE', 'AI_ACCURACY', 'FEATURE_REQUEST']),
-  message: z.string().min(5, 'Feedback message must be at least 5 characters'),
-  pageUrl: z.string().optional(),
-  browserInfo: z.string().optional(),
-  userId: z.string().optional(),
-  role: z.string().optional(),
+  message: z.string().trim().min(5, 'Feedback message must be at least 5 characters').max(2000, 'Feedback message is too long'),
+  pageUrl: z.string().trim().max(300).optional(),
+  browserInfo: z.string().trim().max(300).optional(),
+  userId: z.string().trim().max(64).optional(),
+  role: z.string().trim().max(32).optional(),
 });
 
 export const submitContact = async (req: Request, res: Response): Promise<void> => {
