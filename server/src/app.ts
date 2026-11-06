@@ -25,15 +25,33 @@ export const createApp = (): express.Application => {
     })
   );
 
-  // Strict CORS Allowlist
-  const allowedOrigins =
-    env.NODE_ENV === 'production'
-      ? [env.CLIENT_ORIGIN]
-      : [env.CLIENT_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  // Strict CORS Allowlist (normalizes trailing slashes & auto-trusts Vercel deployment URLs)
+  const configuredOrigins = env.CLIENT_ORIGIN.split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  if (process.env.VERCEL_URL) {
+    configuredOrigins.push(`https://${process.env.VERCEL_URL.replace(/\/+$/, '')}`);
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    configuredOrigins.push(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/+$/, '')}`);
+  }
+  if (env.NODE_ENV !== 'production') {
+    configuredOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+  }
+
+  const allowedOriginSet = new Set(configuredOrigins);
 
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        // Allow same-origin / server-to-server requests (no Origin header) or allowlisted origins
+        if (!origin || allowedOriginSet.has(origin.replace(/\/+$/, ''))) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
       credentials: true,
     })
   );

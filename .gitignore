@@ -1,8 +1,10 @@
 node_modules/
 .env
-.env.local
+.env.*
+!server/.env.example
 dist/
 build/
+.vercel/
 *.log
 .DS_Store
 

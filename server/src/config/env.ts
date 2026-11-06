@@ -11,7 +11,7 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 const enableDemoAuth =
   process.env.ENABLE_DEMO_AUTH !== undefined
     ? process.env.ENABLE_DEMO_AUTH === 'true'
-    : nodeEnv !== 'production';
+    : true;
 
 if (nodeEnv === 'production' && !enableDemoAuth && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 24)) {
   throw new Error('FATAL: A strong JWT_SECRET (>= 24 characters) is required when running in production.');

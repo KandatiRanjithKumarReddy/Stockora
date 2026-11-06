@@ -1,17 +1,33 @@
 import mongoose from 'mongoose';
 import { env } from './env.js';
 
+let cachedConnectionPromise: Promise<typeof mongoose> | null = null;
+
 export const connectDB = async (): Promise<void> => {
   if (!env.MONGODB_URI) {
     throw new Error('MONGODB_URI is not defined in environment variables.');
   }
 
-  try {
-    await mongoose.connect(env.MONGODB_URI);
-    console.log('[MongoDB] Database connection established.');
-  } catch (error) {
-    console.error('[MongoDB] Connection failed.');
-    process.exit(1);
+  // Fast path for warm serverless containers
+  if (mongoose.connection.readyState === 1) {
+    return;
   }
-};
 
+  if (!cachedConnectionPromise) {
+    cachedConnectionPromise = mongoose
+      .connect(env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000,
+      })
+      .then((conn) => {
+        console.log('[MongoDB] Database connection established.');
+        return conn;
+      })
+      .catch((error) => {
+        cachedConnectionPromise = null;
+        console.error('[MongoDB] Connection failed.');
+        throw error;
+      });
+  }
+
+  await cachedConnectionPromise;
+};
