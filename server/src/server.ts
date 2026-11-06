@@ -1,8 +1,6 @@
-import { createApp } from './app.js';
+import app from './app.js';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
-
-const app = createApp();
 
 // Only bind a local TCP port when running outside Vercel Serverless
 if (!process.env.VERCEL) {

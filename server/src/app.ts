@@ -73,6 +73,7 @@ export const createApp = (): express.Application => {
     max: 400,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
     message: {
       success: false,
       message: 'Too many requests from this network. Please wait a moment and try again.',
@@ -84,6 +85,7 @@ export const createApp = (): express.Application => {
     max: 25,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
     message: {
       success: false,
       message: 'Too many sign-in attempts. Please wait a few minutes before trying again.',
@@ -95,6 +97,7 @@ export const createApp = (): express.Application => {
     max: 25,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
     message: {
       success: false,
       message: 'Smart Order rate limit reached. Please wait a few minutes or add items from the catalog.',
@@ -106,6 +109,7 @@ export const createApp = (): express.Application => {
     max: 15,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
     message: {
       success: false,
       message: 'Too many form submissions. Please wait a few minutes before sending another message.',
@@ -114,8 +118,13 @@ export const createApp = (): express.Application => {
 
   app.use('/api/v1', generalApiLimiter);
 
+  // Quiet browser favicon probes
+  app.get(['/favicon.ico', '/favicon.png'], (_req, res) => {
+    res.status(204).end();
+  });
+
   // Root & Healthcheck endpoints
-  app.get('/', (_req, res) => {
+  app.get(['/', '/api/v1'], (_req, res) => {
     res.json({
       status: 'healthy',
       app: 'Stockora API',
@@ -160,3 +169,7 @@ export const createApp = (): express.Application => {
 
   return app;
 };
+
+const app = createApp();
+
+export default app;
