@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import * as helmetPkg from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
+import { connectDB } from './config/db.js';
+import { asyncHandler } from './utils/asyncHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
@@ -13,14 +15,18 @@ import orderRoutes from './routes/orderRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import orderDeskRoutes from './routes/orderDeskRoutes.js';
 
+const helmetMiddleware = (
+  typeof (helmetPkg as any).default === 'function' ? (helmetPkg as any).default : helmetPkg
+) as (options?: Record<string, unknown>) => express.RequestHandler;
+
 export const createApp = (): express.Application => {
   const app = express();
 
   app.set('trust proxy', 1);
 
-  // HTTP Security Headers
+  // HTTP Security Headers (ESM & CJS TypeScript 5.9 compatible)
   app.use(
-    helmet({
+    helmetMiddleware({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     })
   );
@@ -108,7 +114,15 @@ export const createApp = (): express.Application => {
 
   app.use('/api/v1', generalApiLimiter);
 
-  // Healthcheck endpoint
+  // Root & Healthcheck endpoints
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'healthy',
+      app: 'Stockora API',
+      version: '1.0.0',
+    });
+  });
+
   app.get('/api/v1/health', (_req, res) => {
     res.json({
       status: 'healthy',
@@ -117,6 +131,15 @@ export const createApp = (): express.Application => {
       timestamp: new Date().toISOString(),
     });
   });
+
+  // Ensure MongoDB connection is established on serverless cold starts before business routes
+  app.use(
+    '/api/v1',
+    asyncHandler(async (_req, _res, next) => {
+      await connectDB();
+      next();
+    })
+  );
 
   // REST API Routes
   app.use('/api/v1/auth/login', authLimiter);
