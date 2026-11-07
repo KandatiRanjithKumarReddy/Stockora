@@ -26,7 +26,7 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
-  const { addToCart } = useCart();
+  const { addItemsBatch } = useCart();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,23 +47,28 @@ export const MyOrdersPage: React.FC<MyOrdersPageProps> = ({ onNavigate }) => {
   };
 
   const handleRepeatOrder = (order: any) => {
-    order.items.forEach((item: any) => {
-      const skuSlug = String(item.sku || '').toLowerCase();
-      addToCart(
-        {
-          _id: item.productId,
-          sku: item.sku,
-          name: item.name,
-          packSize: item.packSize || '',
-          unitsPerCase: item.unitsPerCaseSnapshot,
-          dealerPricePerPack: item.packPriceSnapshot,
-          calculatedCasePrice: item.casePriceSnapshot,
-          imageUrl: skuSlug ? `/images/products/${skuSlug}.svg` : '/images/products/placeholder-case.svg',
-          availableCases: 999,
-        },
-        item.orderedCases
-      );
-    });
+    addItemsBatch(
+      order.items.map((item: any) => {
+        const skuSlug = String(item.sku || '').toLowerCase();
+        return {
+          product: {
+            _id: item.productId,
+            sku: item.sku,
+            name: item.name,
+            packSize: item.packSize || '',
+            unitsPerCase: item.unitsPerCaseSnapshot,
+            dealerPricePerPack: item.packPriceSnapshot,
+            calculatedCasePrice: item.casePriceSnapshot,
+            gstRatePercent: item.gstRatePercent,
+            imageUrl: skuSlug
+              ? `/images/products/${skuSlug}.svg`
+              : '/images/products/placeholder-case.svg',
+            availableCases: 999,
+          },
+          cases: item.orderedCases,
+        };
+      })
+    );
     toast.success(
       `Loaded ${order.items.length} item${order.items.length === 1 ? '' : 's'} from ${order.orderNumber} into cart.`,
       { id: 'repeat-order' }

@@ -72,16 +72,16 @@ export const FeedbackModal: React.FC = () => {
       <button
         onClick={() => setIsOpen(true)}
         type="button"
-        className="fixed bottom-5 right-5 z-40 min-h-[44px] px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-dark-elevated dark:hover:bg-dark-hover text-white border border-zinc-700 dark:border-dark-borderStrong shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
+        className="fixed bottom-5 right-5 z-40 min-h-[44px] px-4 py-2.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 dark:bg-dark-elevated dark:hover:bg-dark-hover dark:text-white dark:border-dark-borderStrong shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
         aria-label="Share product feedback"
       >
-        <MessageSquarePlus className="w-4 h-4 text-brand-400" />
+        <MessageSquarePlus className="w-4 h-4 text-brand-600 dark:text-brand-400" />
         <span className="hidden sm:inline">Feedback</span>
       </button>
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 dark:bg-black/70 backdrop-blur-sm animate-fadeIn"
           onClick={(e) => {
             if (e.target === e.currentTarget) handleClose();
           }}

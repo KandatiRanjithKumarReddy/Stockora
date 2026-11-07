@@ -429,7 +429,7 @@ export const OrderDeskDashboardPage: React.FC = () => {
       {/* Slide-Over Inspection Drawer */}
       {selectedOrder && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex justify-end bg-zinc-900/40 dark:bg-black/70 backdrop-blur-sm animate-fadeIn"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedOrder(null);
           }}

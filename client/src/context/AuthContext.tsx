@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api } from '../services/api';
 
 export interface RetailerProfile {
@@ -47,7 +47,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('stockora_token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(localStorage.getItem('stockora_token')));
+  const skipNextMeFetchRef = useRef<boolean>(false);
 
   const fetchCurrentUser = async () => {
     try {
@@ -65,6 +66,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    if (skipNextMeFetchRef.current) {
+      skipNextMeFetchRef.current = false;
+      setIsLoading(false);
+      return;
+    }
+
     if (token) {
       fetchCurrentUser();
     } else {
@@ -73,9 +80,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const setAuthSession = (newToken: string, newUser: User): User => {
+    skipNextMeFetchRef.current = true;
     localStorage.setItem('stockora_token', newToken);
     setToken(newToken);
     setUser(newUser);
+    setIsLoading(false);
     return newUser;
   };
 

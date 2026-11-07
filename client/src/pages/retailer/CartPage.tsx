@@ -114,6 +114,48 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
             </p>
           </div>
 
+          {typeof orderSuccess.finalPayableAmount === 'number' && (
+            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-dark-elevated border border-zinc-200 dark:border-dark-border text-left space-y-2 text-sm tabular-nums">
+              {typeof orderSuccess.subtotal === 'number' && (
+                <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                  <span>Base Subtotal (Excl. GST)</span>
+                  <span className="font-medium text-zinc-900 dark:text-zinc-200">
+                    ₹{orderSuccess.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              {(orderSuccess.totalDiscount || 0) > 0 && (
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium">
+                  <span>Trade Scheme Savings</span>
+                  <span>-₹{orderSuccess.totalDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {typeof orderSuccess.totalCgst === 'number' && (
+                <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                  <span>CGST</span>
+                  <span>₹{orderSuccess.totalCgst.toFixed(2)}</span>
+                </div>
+              )}
+              {typeof orderSuccess.totalSgst === 'number' && (
+                <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                  <span>SGST (MP)</span>
+                  <span>₹{orderSuccess.totalSgst.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="pt-2.5 border-t border-zinc-200 dark:border-dark-border flex justify-between items-baseline">
+                <span className="font-bold text-zinc-900 dark:text-white">
+                  Final Payable (Incl. GST)
+                </span>
+                <span className="text-lg font-bold text-zinc-900 dark:text-white">
+                  ₹{orderSuccess.finalPayableAmount.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
+
           {orderSuccess.creditHold ? (
             <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/70 text-sm text-amber-900 dark:text-amber-200 text-left space-y-1.5">
               <div className="font-semibold flex items-center gap-2 text-amber-800 dark:text-amber-300">
@@ -315,16 +357,19 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
 
         {/* Right: Invoice Summary & Credit Check */}
         <aside className="lg:col-span-4 lg:sticky lg:top-24 surface-card p-6 space-y-5">
-          <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-            Order Summary
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold text-zinc-900 dark:text-white">
+              Order Summary
+            </h2>
+            {isLoadingCalc && calculation && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600 dark:text-brand-400" />
+                <span>Syncing...</span>
+              </span>
+            )}
+          </div>
 
-          {isLoadingCalc ? (
-            <div className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400 flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
-              <span>Calculating schemes & GST...</span>
-            </div>
-          ) : calculation ? (
+          {calculation ? (
             <dl className="space-y-2.5 text-sm tabular-nums">
               <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
                 <dt>Base Subtotal (Excl. GST)</dt>
@@ -362,6 +407,11 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
                 </dd>
               </div>
             </dl>
+          ) : isLoadingCalc ? (
+            <div className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
+              <span>Calculating schemes & GST...</span>
+            </div>
           ) : null}
 
           {/* Credit Exposure Card */}
@@ -398,7 +448,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
           <button
             type="button"
             onClick={handlePlaceOrder}
-            disabled={isSubmitting || isLoadingCalc || stockWarnings.length > 0}
+            disabled={isSubmitting || (!calculation && isLoadingCalc) || stockWarnings.length > 0}
             className="btn-primary w-full"
           >
             {isSubmitting ? (

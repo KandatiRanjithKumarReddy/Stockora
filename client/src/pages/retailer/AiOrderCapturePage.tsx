@@ -27,7 +27,7 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
   const [isParsing, setIsParsing] = useState(false);
   const [suggestions, setSuggestions] = useState<any[] | null>(null);
 
-  const { addToCart } = useCart();
+  const { addItemsBatch } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const parseLockRef = useRef(false);
@@ -151,9 +151,12 @@ export const AiOrderCapturePage: React.FC<AiOrderCapturePageProps> = ({ onNaviga
   const handleAddAllToCart = () => {
     if (!suggestions || eligibleItems.length === 0 || unconfirmedCount > 0) return;
 
-    eligibleItems.forEach((item) => {
-      addToCart(item.product, item.confirmedCases || 1);
-    });
+    addItemsBatch(
+      eligibleItems.map((item) => ({
+        product: item.product,
+        cases: item.confirmedCases || 1,
+      }))
+    );
 
     try {
       sessionStorage.setItem('stockora_smart_order_raw', rawText.trim());

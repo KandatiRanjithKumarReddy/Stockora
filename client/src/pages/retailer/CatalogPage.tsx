@@ -22,60 +22,130 @@ interface CatalogPageProps {
   onNavigate: (view: string) => void;
 }
 
+// Scoped in-memory catalog cache strictly partitioned by user ID to preserve retailer price privacy
+const catalogMemoryCache = new Map<string, any[]>();
+let cachedCatalogOwner = '';
+let cachedMetadata: { categories: string[]; brands: string[] } | null = null;
+
 export const CatalogPage: React.FC<CatalogPageProps> = ({ onNavigate }) => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [brands, setBrands] = useState<string[]>([]);
+  const { addToCart, cart, itemCount } = useCart();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { toast } = useToast();
+
+  const ownerKey = user?.id || 'anon';
+  if (cachedCatalogOwner !== ownerKey) {
+    catalogMemoryCache.clear();
+    cachedCatalogOwner = ownerKey;
+  }
+
+  const defaultCacheKey = `${ownerKey}::ALL::ALL::::false`;
+  const initialCachedProducts = catalogMemoryCache.get(defaultCacheKey);
+
+  const [products, setProducts] = useState<any[]>(() => initialCachedProducts || []);
+  const [categories, setCategories] = useState<string[]>(() => cachedMetadata?.categories || []);
+  const [brands, setBrands] = useState<string[]>(() => cachedMetadata?.brands || []);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => !initialCachedProducts);
   const [steppers, setSteppers] = useState<{ [productId: string]: number }>({});
 
-  const { addToCart, cart, itemCount } = useCart();
-  const { user } = useAuth();
-  const { toast } = useToast();
-
   useEffect(() => {
-    fetchMetadata();
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [selectedCategory, selectedBrand, search, inStockOnly, user?.id]);
-
-  const fetchMetadata = async () => {
-    try {
-      const res = await api.get('/products/categories');
-      if (res.data.success) {
-        setCategories(res.data.categories);
-        setBrands(res.data.brands);
-      }
-    } catch {
-      // Categories filter remains at default ALL
+    if (!search.trim()) {
+      setDebouncedSearch('');
+      return;
     }
-  };
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  const fetchProducts = async () => {
-    setIsLoading(true);
-    try {
-      const params: any = {};
-      if (selectedCategory !== 'ALL') params.category = selectedCategory;
-      if (selectedBrand !== 'ALL') params.brand = selectedBrand;
-      if (search) params.search = search;
-      if (inStockOnly) params.inStock = 'true';
+  useEffect(() => {
+    if (isAuthLoading) return;
 
-      const res = await api.get('/products', { params });
-      if (res.data.success) {
-        setProducts(res.data.products);
-      }
-    } catch {
-      toast.error('Unable to load wholesale catalog.', { id: 'catalog-fetch-err' });
-    } finally {
+    const isUnfiltered =
+      selectedCategory === 'ALL' &&
+      selectedBrand === 'ALL' &&
+      !debouncedSearch &&
+      !inStockOnly;
+
+    const cacheKey = `${ownerKey}::${selectedCategory}::${selectedBrand}::${debouncedSearch.toLowerCase()}::${inStockOnly}`;
+    const cachedHit = catalogMemoryCache.get(cacheKey);
+
+    if (cachedHit) {
+      setProducts(cachedHit);
       setIsLoading(false);
+    } else {
+      setIsLoading(true);
     }
-  };
+
+    const controller = new AbortController();
+
+    const loadCatalog = async () => {
+      try {
+        const params: any = {};
+        if (selectedCategory !== 'ALL') params.category = selectedCategory;
+        if (selectedBrand !== 'ALL') params.brand = selectedBrand;
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (inStockOnly) params.inStock = 'true';
+
+        const res = await api.get('/products', {
+          params,
+          signal: controller.signal,
+        });
+
+        if (!controller.signal.aborted && res.data.success) {
+          const fetchedProducts: any[] = res.data.products || [];
+          catalogMemoryCache.set(cacheKey, fetchedProducts);
+          setProducts(fetchedProducts);
+
+          if (isUnfiltered && fetchedProducts.length > 0) {
+            const nextCategories = Array.from(
+              new Set(fetchedProducts.map((p) => p.category).filter(Boolean))
+            ).sort() as string[];
+            const nextBrands = Array.from(
+              new Set(fetchedProducts.map((p) => p.brand).filter(Boolean))
+            ).sort() as string[];
+            cachedMetadata = { categories: nextCategories, brands: nextBrands };
+            setCategories(nextCategories);
+            setBrands(nextBrands);
+          } else if (!cachedMetadata) {
+            api
+              .get('/products/categories', { signal: controller.signal })
+              .then((metaRes) => {
+                if (!controller.signal.aborted && metaRes.data.success) {
+                  cachedMetadata = {
+                    categories: metaRes.data.categories || [],
+                    brands: metaRes.data.brands || [],
+                  };
+                  setCategories(cachedMetadata.categories);
+                  setBrands(cachedMetadata.brands);
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      } catch (err: any) {
+        if (controller.signal.aborted || err?.code === 'ERR_CANCELED') return;
+        if (!cachedHit) {
+          toast.error('Unable to load wholesale catalog.', { id: 'catalog-fetch-err' });
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadCatalog();
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedCategory, selectedBrand, debouncedSearch, inStockOnly, ownerKey, isAuthLoading]);
 
   const getStepperQty = (productId: string) => steppers[productId] || 1;
 

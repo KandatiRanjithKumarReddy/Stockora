@@ -27,7 +27,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               </span>
             </div>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md leading-relaxed">
-              Built for Company A in Jabalpur—connecting 1,800+ kirana retailers with live warehouse
+              Built for wholesale distribution in Jabalpur—connecting 1,800+ kirana retailers with live warehouse
               stock, transparent case pricing, automated trade schemes, and direct Tally ERP export.
             </p>
             <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 pt-1">
@@ -151,7 +151,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
         {/* Bottom Copyright */}
         <div className="mt-10 pt-6 border-t border-zinc-200 dark:border-dark-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-          <p>&copy; {currentYear} Stockora — Company A Distribution, Jabalpur. All rights reserved.</p>
+          <p>&copy; {currentYear} Stockora — Wholesale Distribution, Jabalpur. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <button
               type="button"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, User, useAuth } from './context/AuthContext';
@@ -7,15 +7,28 @@ import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
 import { FeedbackModal } from './components/common/FeedbackModal';
 import { HomePage } from './pages/public/HomePage';
-import { AboutPage } from './pages/public/AboutPage';
-import { ContactPage } from './pages/public/ContactPage';
-import { PrivacyPolicyPage } from './pages/public/PrivacyPolicyPage';
 import { CatalogPage } from './pages/retailer/CatalogPage';
 import { CartPage } from './pages/retailer/CartPage';
-import { AiOrderCapturePage } from './pages/retailer/AiOrderCapturePage';
-import { MyOrdersPage } from './pages/retailer/MyOrdersPage';
-import { OrderDeskDashboardPage } from './pages/desk/OrderDeskDashboardPage';
 import { AuthCard } from './components/auth/AuthCard';
+
+const AboutPage = lazy(() =>
+  import('./pages/public/AboutPage').then((m) => ({ default: m.AboutPage }))
+);
+const ContactPage = lazy(() =>
+  import('./pages/public/ContactPage').then((m) => ({ default: m.ContactPage }))
+);
+const PrivacyPolicyPage = lazy(() =>
+  import('./pages/public/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage }))
+);
+const AiOrderCapturePage = lazy(() =>
+  import('./pages/retailer/AiOrderCapturePage').then((m) => ({ default: m.AiOrderCapturePage }))
+);
+const MyOrdersPage = lazy(() =>
+  import('./pages/retailer/MyOrdersPage').then((m) => ({ default: m.MyOrdersPage }))
+);
+const OrderDeskDashboardPage = lazy(() =>
+  import('./pages/desk/OrderDeskDashboardPage').then((m) => ({ default: m.OrderDeskDashboardPage }))
+);
 
 const VALID_VIEWS = new Set([
   'home',
@@ -103,63 +116,71 @@ const MainApp: React.FC = () => {
       <Navbar onNavigate={handleNavigate} currentView={currentView} cartItemCount={itemCount} />
 
       <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Public Pages */}
-        {currentView === 'home' && <HomePage onNavigate={handleNavigate} />}
-        {currentView === 'about' && <AboutPage onNavigate={handleNavigate} />}
-        {currentView === 'contact' && <ContactPage onNavigate={handleNavigate} />}
-        {currentView === 'privacy' && <PrivacyPolicyPage onNavigate={handleNavigate} />}
-
-        {/* Authentication Pages */}
-        {currentView === 'auth' && (
-          <div className="py-8 sm:py-12">
-            <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                Sign in to Stockora
-              </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Access your kirana wholesale account or distributor order desk
-              </p>
+        <Suspense
+          fallback={
+            <div className="py-16 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              Loading workspace...
             </div>
-            <AuthCard initialMode="signin" onSuccess={handleAuthSuccess} />
-          </div>
-        )}
+          }
+        >
+          {/* Public Pages */}
+          {currentView === 'home' && <HomePage onNavigate={handleNavigate} />}
+          {currentView === 'about' && <AboutPage onNavigate={handleNavigate} />}
+          {currentView === 'contact' && <ContactPage onNavigate={handleNavigate} />}
+          {currentView === 'privacy' && <PrivacyPolicyPage onNavigate={handleNavigate} />}
 
-        {currentView === 'register' && (
-          <div className="py-8 sm:py-12">
-            <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                Register Your Kirana Shop
-              </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Get direct wholesale dealer pricing, live stock status, and scheme benefits
-              </p>
+          {/* Authentication Pages */}
+          {currentView === 'auth' && (
+            <div className="py-8 sm:py-12">
+              <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  Sign in to Stockora
+                </h1>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Access your kirana wholesale account or distributor order desk
+                </p>
+              </div>
+              <AuthCard initialMode="signin" onSuccess={handleAuthSuccess} />
             </div>
-            <AuthCard initialMode="signup" onSuccess={handleAuthSuccess} />
-          </div>
-        )}
+          )}
 
-        {currentView === 'desk-auth' && (
-          <div className="py-8 sm:py-12">
-            <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                Order Desk Sign In
-              </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Authorized distributor staff portal for order review and Tally export
-              </p>
+          {currentView === 'register' && (
+            <div className="py-8 sm:py-12">
+              <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  Register Your Kirana Shop
+                </h1>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Get direct wholesale dealer pricing, live stock status, and scheme benefits
+                </p>
+              </div>
+              <AuthCard initialMode="signup" onSuccess={handleAuthSuccess} />
             </div>
-            <AuthCard initialMode="desk" onSuccess={handleAuthSuccess} />
-          </div>
-        )}
+          )}
 
-        {/* Retailer Workspace */}
-        {currentView === 'catalog' && <CatalogPage onNavigate={handleNavigate} />}
-        {currentView === 'cart' && <CartPage onNavigate={handleNavigate} />}
-        {currentView === 'ai-order' && <AiOrderCapturePage onNavigate={handleNavigate} />}
-        {currentView === 'my-orders' && <MyOrdersPage onNavigate={handleNavigate} />}
+          {currentView === 'desk-auth' && (
+            <div className="py-8 sm:py-12">
+              <div className="max-w-md mx-auto text-center mb-6 space-y-1.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                  Order Desk Sign In
+                </h1>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Authorized distributor staff portal for order review and Tally export
+                </p>
+              </div>
+              <AuthCard initialMode="desk" onSuccess={handleAuthSuccess} />
+            </div>
+          )}
 
-        {/* Order Desk Workspace */}
-        {currentView === 'desk-dashboard' && <OrderDeskDashboardPage />}
+          {/* Retailer Workspace */}
+          {currentView === 'catalog' && <CatalogPage onNavigate={handleNavigate} />}
+          {currentView === 'cart' && <CartPage onNavigate={handleNavigate} />}
+          {currentView === 'ai-order' && <AiOrderCapturePage onNavigate={handleNavigate} />}
+          {currentView === 'my-orders' && <MyOrdersPage onNavigate={handleNavigate} />}
+
+          {/* Order Desk Workspace */}
+          {currentView === 'desk-dashboard' && <OrderDeskDashboardPage />}
+        </Suspense>
       </main>
 
       <Footer onNavigate={handleNavigate} currentView={currentView} />
