@@ -1,34 +1,41 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231D4ED8'><rect width='24' height='24' rx='6' fill='%231D4ED8'/><path d='M7 8h10l-1 9H8L7 8zm3-2a2 2 0 114 0' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Stockora — Wholesale FMCG Ordering & Inventory Platform for Kirana Retailers and Distributors." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    </noscript>
-    <title>Stockora — Wholesale Ordering Made Simple</title>
-    <script>
-      (function () {
-        try {
-          var saved = localStorage.getItem('stockora_theme');
-          if (saved === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-        } catch (e) {
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231D4ED8'><rect width='24' height='24' rx='6' fill='%231D4ED8'/><path d='M7 8h10l-1 9H8L7 8zm3-2a2 2 0 114 0' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Stockora — Wholesale FMCG Ordering & Inventory Platform for Kirana Retailers and Distributors." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"
+    media="print" onload="this.media='all'" />
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </noscript>
+  <title>Stockora — Wholesale Ordering Made Simple</title>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('stockora_theme');
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
           document.documentElement.classList.remove('dark');
         }
-      })();
-    </script>
-  </head>
-  <body class="bg-light-bg dark:bg-dark-bg text-zinc-900 dark:text-zinc-100 antialiased selection:bg-brand-600 selection:text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+      } catch (e) {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
+</head>
+
+<body
+  class="bg-light-bg dark:bg-dark-bg text-zinc-900 dark:text-zinc-100 antialiased selection:bg-brand-600 selection:text-white">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
