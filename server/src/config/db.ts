@@ -17,6 +17,10 @@ export const connectDB = async (): Promise<void> => {
     cachedConnectionPromise = mongoose
       .connect(env.MONGODB_URI, {
         serverSelectionTimeoutMS: 10000,
+        maxPoolSize: 10,
+        minPoolSize: 1,
+        maxIdleTimeMS: 60000,
+        socketTimeoutMS: 30000,
       })
       .then((conn) => {
         console.log('[MongoDB] Database connection established.');

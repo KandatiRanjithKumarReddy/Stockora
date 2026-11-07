@@ -47,32 +47,37 @@ export const calculateCart = async (req: AuthenticatedRequest, res: Response): P
   }
 
   const productIds = items.map((i) => i.productId);
-  const products = await Product.find({ _id: { $in: productIds }, isActive: true });
+  const now = new Date();
+  const retailerId = req.user?.retailerId
+    ? ((req.user.retailerId as any)._id || req.user.retailerId)
+    : null;
 
-  const productMap = new Map();
+  const [products, schemes, customPrices] = await Promise.all([
+    Product.find({ _id: { $in: productIds }, isActive: true }).lean(),
+    Scheme.find({
+      primaryProductId: { $in: productIds },
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean(),
+    retailerId
+      ? RetailerPrice.find({
+          retailerId,
+          productId: { $in: productIds },
+          validFrom: { $lte: now },
+          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+        }).lean()
+      : Promise.resolve([]),
+  ]);
+
+  const productMap = new Map<string, any>();
   products.forEach((p) => productMap.set(p._id.toString(), p));
 
-  const now = new Date();
-  const schemes = await Scheme.find({
-    primaryProductId: { $in: productIds },
-    isActive: true,
-    startDate: { $lte: now },
-    endDate: { $gte: now },
-  });
-
-  const schemeMap = new Map();
+  const schemeMap = new Map<string, any>();
   schemes.forEach((s) => schemeMap.set(s.primaryProductId.toString(), s));
 
-  // Load custom prices if retailer
-  let customPriceMap = new Map();
-  if (req.user?.retailerId) {
-    const retailerId = req.user.retailerId._id || req.user.retailerId;
-    const customPrices = await RetailerPrice.find({
-      retailerId,
-      productId: { $in: productIds },
-    });
-    customPrices.forEach((cp) => customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack));
-  }
+  const customPriceMap = new Map<string, number>();
+  customPrices.forEach((cp) => customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack));
 
   const calculationInput = [];
   const stockWarnings = [];

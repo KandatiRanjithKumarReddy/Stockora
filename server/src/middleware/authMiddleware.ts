@@ -31,7 +31,7 @@ export const requireAuth = async (
 
   try {
     const payload = verifyToken(token);
-    const user = await User.findById(payload.userId).populate('retailerId');
+    const user = await User.findById(payload.userId).select('-passwordHash').lean<IUser>();
 
     if (!user) {
       res.status(401).json({ success: false, message: 'User account not found.' });
@@ -73,7 +73,7 @@ export const optionalAuth = async (
 
   try {
     const payload = verifyToken(token);
-    const user = await User.findById(payload.userId).populate('retailerId');
+    const user = await User.findById(payload.userId).select('-passwordHash').lean<IUser>();
     if (user && user.status === 'ACTIVE') {
       req.user = user;
       req.tokenPayload = payload;

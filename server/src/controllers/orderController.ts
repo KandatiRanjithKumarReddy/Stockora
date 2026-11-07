@@ -66,7 +66,28 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
   }));
 
   const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
-  const retailer = await Retailer.findById(retailerId);
+  const productIds = items.map((i) => i.productId);
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+
+  // Wave 1: Fetch Retailer, Products, Active Schemes, Custom Shop Prices, and Next Order Number in parallel
+  const [retailer, products, schemes, customPrices, initialOrderNumber] = await Promise.all([
+    Retailer.findById(retailerId).lean(),
+    Product.find({ _id: { $in: productIds }, isActive: true }).lean(),
+    Scheme.find({
+      primaryProductId: { $in: productIds },
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean(),
+    RetailerPrice.find({
+      retailerId,
+      productId: { $in: productIds },
+      validFrom: { $lte: now },
+      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+    }).lean(),
+    generateNextOrderNumber(dateStr),
+  ]);
 
   if (!retailer || !retailer.isActive) {
     res.status(403).json({ success: false, message: 'Retailer account is inactive or not found.' });
@@ -81,8 +102,6 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     return;
   }
 
-  const productIds = items.map((i) => i.productId);
-  const products = await Product.find({ _id: { $in: productIds }, isActive: true });
   const productMap = new Map<string, any>();
   products.forEach((p) => productMap.set(p._id.toString(), p));
 
@@ -104,34 +123,17 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     }
   }
 
-  // 2. Fetch Active Schemes & Custom Shop Prices
-  const now = new Date();
-  const [schemes, customPrices] = await Promise.all([
-    Scheme.find({
-      primaryProductId: { $in: productIds },
-      isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-    }),
-    RetailerPrice.find({
-      retailerId: retailer._id,
-      productId: { $in: productIds },
-      validFrom: { $lte: now },
-      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
-    }),
-  ]);
-
   const schemeMap = new Map<string, any>();
   schemes.forEach((s) => schemeMap.set(s.primaryProductId.toString(), s));
 
   const customPriceMap = new Map<string, number>();
   customPrices.forEach((cp) => customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack));
 
-  // 3. Deterministic Scheme Engine Calculation
+  // 2. Deterministic Scheme Engine Calculation
   const calculationInput = items.map((i) => {
     const product = productMap.get(i.productId)!;
     return {
-      product,
+      product: product as any,
       orderedCases: i.orderedCases,
       activeScheme: schemeMap.get(product._id.toString()),
       customDealerPricePerPack: customPriceMap.get(product._id.toString()),
@@ -140,41 +142,51 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
 
   const financials = calculateOrderFinancials(calculationInput);
 
-  // 4. Atomic Conditional Stock Reservation with Automatic Rollback on Contention
-  const reservedSoFar: Array<{ productId: string; orderedCases: number }> = [];
-  for (const item of items) {
-    const updatedProduct = await Product.findOneAndUpdate(
-      {
-        _id: item.productId,
-        isActive: true,
-        $expr: {
-          $gte: [{ $subtract: ['$stockCasesAvailable', '$stockCasesReserved'] }, item.orderedCases],
+  // Wave 2: Parallel Atomic Conditional Stock Reservation with Automatic Rollback on Contention
+  const reservationResults = await Promise.all(
+    items.map(async (item) => {
+      const updatedProduct = await Product.findOneAndUpdate(
+        {
+          _id: item.productId,
+          isActive: true,
+          $expr: {
+            $gte: [{ $subtract: ['$stockCasesAvailable', '$stockCasesReserved'] }, item.orderedCases],
+          },
         },
-      },
-      {
-        $inc: { stockCasesReserved: item.orderedCases },
-      },
-      { new: true }
-    );
+        {
+          $inc: { stockCasesReserved: item.orderedCases },
+        },
+        { new: true }
+      )
+        .select('_id')
+        .lean();
 
-    if (!updatedProduct) {
-      for (const prev of reservedSoFar) {
-        await Product.findByIdAndUpdate(prev.productId, {
-          $inc: { stockCasesReserved: -prev.orderedCases },
-        });
-      }
-      const prodName = productMap.get(item.productId)?.name || 'requested item';
-      res.status(400).json({
-        success: false,
-        message: `Insufficient live stock for ${prodName}. Please refresh your cart quantities.`,
-      });
-      return;
+      return { item, reserved: Boolean(updatedProduct) };
+    })
+  );
+
+  const failedReservation = reservationResults.find((r) => !r.reserved);
+  const reservedSoFar = reservationResults.filter((r) => r.reserved).map((r) => r.item);
+
+  if (failedReservation) {
+    if (reservedSoFar.length > 0) {
+      await Promise.all(
+        reservedSoFar.map((prev) =>
+          Product.findByIdAndUpdate(prev.productId, {
+            $inc: { stockCasesReserved: -prev.orderedCases },
+          })
+        )
+      );
     }
-
-    reservedSoFar.push(item);
+    const prodName = productMap.get(failedReservation.item.productId)?.name || 'requested item';
+    res.status(400).json({
+      success: false,
+      message: `Insufficient live stock for ${prodName}. Please refresh your cart quantities.`,
+    });
+    return;
   }
 
-  // 5. Credit Hold Policy (Option B)
+  // 3. Credit Hold Policy (Option B)
   const totalExposure = retailer.outstandingBalance + financials.finalPayableAmount;
   let status: OrderStatus = 'SUBMITTED';
   let flaggedHold = false;
@@ -189,15 +201,14 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
   const reservationExpiresAt = new Date(
     Date.now() + env.STOCK_RESERVATION_EXPIRY_MINUTES * 60 * 1000
   );
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  // 6. Create Order with Collision-Safe Order Number Retry
+  // Wave 3: Create Order with Collision-Safe Order Number Retry
   let order: any = null;
   try {
     for (let attempt = 0; attempt < 5; attempt++) {
       const orderNumber =
         attempt === 0
-          ? await generateNextOrderNumber(dateStr)
+          ? initialOrderNumber
           : `STK-${dateStr}-${String(Math.floor(1000 + Math.random() * 9000))}`;
 
       try {
@@ -236,12 +247,14 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
       }
     }
   } catch (err) {
-    // Roll back stock reservation if order persistence fails
-    for (const prev of reservedSoFar) {
-      await Product.findByIdAndUpdate(prev.productId, {
-        $inc: { stockCasesReserved: -prev.orderedCases },
-      });
-    }
+    // Roll back stock reservation in parallel if order persistence fails
+    await Promise.all(
+      reservedSoFar.map((prev) =>
+        Product.findByIdAndUpdate(prev.productId, {
+          $inc: { stockCasesReserved: -prev.orderedCases },
+        })
+      )
+    );
     throw err;
   }
 
@@ -254,6 +267,11 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
       id: order._id,
       orderNumber: order.orderNumber,
       status: order.status,
+      subtotal: order.subtotal,
+      totalDiscount: order.totalDiscount,
+      totalCgst: order.totalCgst,
+      totalSgst: order.totalSgst,
+      totalTax: order.totalTax,
       finalPayableAmount: order.finalPayableAmount,
       itemsCount: order.items.length,
       creditHold: flaggedHold,
@@ -270,7 +288,7 @@ export const getMyOrders = async (req: AuthenticatedRequest, res: Response): Pro
   }
 
   const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
-  const orders = await Order.find({ retailerId }).sort({ createdAt: -1 });
+  const orders = await Order.find({ retailerId }).sort({ createdAt: -1 }).lean();
 
   res.json({
     success: true,

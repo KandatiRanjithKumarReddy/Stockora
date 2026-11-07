@@ -31,37 +31,41 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
     }
   }
 
-  const products = await Product.find(query).sort({ category: 1, name: 1 });
-
-  // Fetch active schemes valid today
   const now = new Date();
-  const schemes = await Scheme.find({
-    isActive: true,
-    startDate: { $lte: now },
-    endDate: { $gte: now },
-  });
+  const isAuthorizedViewer = Boolean(req.user);
+  const isStaff = req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN';
+  const retailerId = req.user?.retailerId
+    ? ((req.user.retailerId as any)._id || req.user.retailerId)
+    : null;
 
-  const schemeMap = new Map();
+  // Fetch products, active schemes, and retailer custom prices in parallel
+  const [products, schemes, customPrices] = await Promise.all([
+    Product.find(query).sort({ category: 1, name: 1 }).lean(),
+    Scheme.find({
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean(),
+    retailerId
+      ? RetailerPrice.find({
+          retailerId,
+          validFrom: { $lte: now },
+          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+        }).lean()
+      : Promise.resolve([]),
+  ]);
+
+  const schemeMap = new Map<string, any>();
   schemes.forEach((s) => {
     schemeMap.set(s.primaryProductId.toString(), s);
   });
 
-  const isAuthorizedViewer = Boolean(req.user);
-  const isStaff = req.user?.role === 'ORDER_DESK' || req.user?.role === 'ADMIN';
-
-  // If authenticated retailer, load custom shop price overrides
   const customPriceMap = new Map<string, number>();
-  if (req.user?.retailerId) {
-    const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
-    const customPrices = await RetailerPrice.find({
-      retailerId,
-      validFrom: { $lte: now },
-      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
-    });
-    customPrices.forEach((cp) => {
-      customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack);
-    });
-  }
+  customPrices.forEach((cp) => {
+    customPriceMap.set(cp.productId.toString(), cp.customDealerPricePerPack);
+  });
+
+  res.setHeader('Cache-Control', 'private, no-store');
 
   // Format response with strict B2B price privacy for unauthenticated visitors
   const enrichedProducts = products.map((p) => {
@@ -138,38 +142,44 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const getProductById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const product = await Product.findById(id);
+  const now = new Date();
+  const retailerId = req.user?.retailerId
+    ? ((req.user.retailerId as any)._id || req.user.retailerId)
+    : null;
+
+  const [product, scheme, customPrice] = await Promise.all([
+    Product.findById(id).lean(),
+    Scheme.findOne({
+      primaryProductId: id,
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean(),
+    retailerId
+      ? RetailerPrice.findOne({
+          retailerId,
+          productId: id,
+          validFrom: { $lte: now },
+          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+        }).lean()
+      : Promise.resolve(null),
+  ]);
 
   if (!product || !product.isActive) {
     res.status(404).json({ success: false, message: 'Product not found.' });
     return;
   }
 
-  const now = new Date();
-  const scheme = await Scheme.findOne({
-    primaryProductId: product._id,
-    isActive: true,
-    startDate: { $lte: now },
-    endDate: { $gte: now },
-  });
-
   const isAuthorizedViewer = Boolean(req.user);
   let effectivePackPrice = product.dealerPricePerPack;
   let hasCustomPrice = false;
 
-  if (req.user?.retailerId) {
-    const retailerId = (req.user.retailerId as any)._id || req.user.retailerId;
-    const customPrice = await RetailerPrice.findOne({
-      retailerId,
-      productId: product._id,
-      validFrom: { $lte: now },
-      $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
-    });
-    if (customPrice) {
-      effectivePackPrice = customPrice.customDealerPricePerPack;
-      hasCustomPrice = true;
-    }
+  if (customPrice) {
+    effectivePackPrice = customPrice.customDealerPricePerPack;
+    hasCustomPrice = true;
   }
+
+  res.setHeader('Cache-Control', 'private, no-store');
 
   const availableCases = Math.max(0, product.stockCasesAvailable - product.stockCasesReserved);
   let stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
@@ -209,8 +219,12 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response): 
 };
 
 export const getCategories = async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
-  const categories = await Product.distinct('category', { isActive: true });
-  const brands = await Product.distinct('brand', { isActive: true });
+  const [categories, brands] = await Promise.all([
+    Product.distinct('category', { isActive: true }),
+    Product.distinct('brand', { isActive: true }),
+  ]);
+
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=300');
 
   res.json({
     success: true,

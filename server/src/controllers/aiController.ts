@@ -2,9 +2,9 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { Product } from '../models/Product.js';
+import { Scheme } from '../models/Scheme.js';
 import { RetailerAlias } from '../models/RetailerAlias.js';
 import { RetailerPrice } from '../models/RetailerPrice.js';
-import { geminiCascade } from '../services/ai/geminiCascadeService.js';
 
 const parseOrderSchema = z.object({
   rawText: z.string().trim().min(3, 'Order message must be at least 3 characters').max(2000, 'Order message is too long'),
@@ -41,8 +41,27 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
       ? retailerId || userRetailerId
       : userRetailerId;
 
-  // 1. Fetch active products
-  const products = await Product.find({ isActive: true });
+  // 1. Fetch active products, schemes, retailer aliases, and custom pricing overrides in parallel
+  const now = new Date();
+  const [products, schemes, aliases, customPrices] = await Promise.all([
+    Product.find({ isActive: true }).lean(),
+    Scheme.find({
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean(),
+    effectiveRetailerId
+      ? RetailerAlias.find({ retailerId: effectiveRetailerId }).lean()
+      : Promise.resolve([]),
+    effectiveRetailerId
+      ? RetailerPrice.find({
+          retailerId: effectiveRetailerId,
+          validFrom: { $lte: now },
+          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
+        }).lean()
+      : Promise.resolve([]),
+  ]);
+
   const catalogContext = products.map((p) => ({
     sku: p.sku,
     name: p.name,
@@ -50,18 +69,10 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     unitsPerCase: p.unitsPerCase,
   }));
 
-  // 2. Fetch retailer-specific aliases and custom pricing overrides
-  const now = new Date();
-  const [aliases, customPrices] = await Promise.all([
-    effectiveRetailerId ? RetailerAlias.find({ retailerId: effectiveRetailerId }) : Promise.resolve([]),
-    effectiveRetailerId
-      ? RetailerPrice.find({
-          retailerId: effectiveRetailerId,
-          validFrom: { $lte: now },
-          $or: [{ validTo: { $exists: false } }, { validTo: null }, { validTo: { $gte: now } }],
-        })
-      : Promise.resolve([]),
-  ]);
+  const schemeMap = new Map<string, any>();
+  schemes.forEach((s) => {
+    schemeMap.set(s.primaryProductId.toString(), s);
+  });
 
   const customPriceMap = new Map<string, number>();
   customPrices.forEach((cp) => {
@@ -73,7 +84,8 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
     mappedSku: a.mappedSku,
   }));
 
-  // 3. Execute Gemini 3-Model Cascade
+  // 2. Lazy-load and execute Gemini 3-Model Cascade only when AI route is invoked
+  const { geminiCascade } = await import('../services/ai/geminiCascadeService.js');
   const cascadeResult = await geminiCascade.parseOrderText(
     rawText,
     catalogContext,
@@ -146,6 +158,19 @@ export const parseWhatsAppOrder = async (req: AuthenticatedRequest, res: Respons
         unitsPerCase: product.unitsPerCase,
         dealerPricePerPack: effectivePackPrice,
         calculatedCasePrice: effectiveCasePrice,
+        gstRatePercent: product.gstRatePercent,
+        isGstIncluded: product.isGstIncluded ?? false,
+        activeScheme: schemeMap.get(product._id.toString())
+          ? {
+              id: schemeMap.get(product._id.toString())._id,
+              name: schemeMap.get(product._id.toString()).name,
+              schemeType: schemeMap.get(product._id.toString()).schemeType,
+              buyQuantity: schemeMap.get(product._id.toString()).buyQuantity,
+              freeQuantity: schemeMap.get(product._id.toString()).freeQuantity,
+              minSlabQuantity: schemeMap.get(product._id.toString()).minSlabQuantity,
+              discountPercentage: schemeMap.get(product._id.toString()).discountPercentage,
+            }
+          : null,
         hasCustomPrice: customPackPrice !== undefined,
         availableCases,
         stockStatus:

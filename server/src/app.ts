@@ -59,6 +59,7 @@ export const createApp = (): express.Application => {
         callback(null, false);
       },
       credentials: true,
+      maxAge: 86400,
     })
   );
 

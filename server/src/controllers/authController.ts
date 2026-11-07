@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
@@ -51,7 +52,7 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
   }
 
   const { phone, password } = result.data;
-  const user = await User.findOne({ phone }).populate('retailerId');
+  const user = await User.findOne({ phone }).populate('retailerId').lean();
 
   if (!user || !user.passwordHash) {
     res.status(401).json({ success: false, message: 'Invalid phone number or password.' });
@@ -121,43 +122,57 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
 
   const { name, phone, password, storeName, locality, gstin } = result.data;
 
-  const existingUser = await User.findOne({ phone });
+  // Wave 1: Check phone uniqueness and compute password hash in parallel
+  const [existingUser, passwordHash] = await Promise.all([
+    User.findOne({ phone }).select('_id').lean(),
+    bcrypt.hash(password, 10),
+  ]);
+
   if (existingUser) {
     res.status(409).json({ success: false, message: 'An account with this phone number already exists.' });
     return;
   }
 
-  const retailer = await Retailer.create({
-    storeName,
-    ownerName: name,
-    phone,
-    address: {
-      street: '',
-      locality,
-      city: 'Jabalpur',
-      pincode: '482001',
-      state: 'Madhya Pradesh',
-    },
-    gstin: gstin || undefined,
-    creditLimit: 25000,
-    outstandingBalance: 0,
-    creditStatus: 'GOOD',
-    priceTier: 'DEFAULT',
-    isActive: true,
-  });
+  // Wave 2: Pre-allocate linked Retailer _id and persist Retailer + User in parallel
+  const retailerId = new mongoose.Types.ObjectId();
+  let retailer: any;
+  let newUser: any;
 
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash(password, salt);
-
-  const newUser = await User.create({
-    name,
-    phone,
-    passwordHash,
-    role: 'RETAILER',
-    status: 'ACTIVE',
-    retailerId: retailer._id,
-    authProvider: 'LOCAL',
-  });
+  try {
+    [retailer, newUser] = await Promise.all([
+      Retailer.create({
+        _id: retailerId,
+        storeName,
+        ownerName: name,
+        phone,
+        address: {
+          street: '',
+          locality,
+          city: 'Jabalpur',
+          pincode: '482001',
+          state: 'Madhya Pradesh',
+        },
+        gstin: gstin || undefined,
+        creditLimit: 25000,
+        outstandingBalance: 0,
+        creditStatus: 'GOOD',
+        priceTier: 'DEFAULT',
+        isActive: true,
+      }),
+      User.create({
+        name,
+        phone,
+        passwordHash,
+        role: 'RETAILER',
+        status: 'ACTIVE',
+        retailerId,
+        authProvider: 'LOCAL',
+      }),
+    ]);
+  } catch (err) {
+    await Retailer.findByIdAndDelete(retailerId).catch(() => {});
+    throw err;
+  }
 
   const token = signToken({
     userId: newUser._id.toString(),
@@ -200,7 +215,7 @@ export const requestOtp = async (req: AuthenticatedRequest, res: Response): Prom
   const { phone } = result.data;
 
   // Staff accounts (Order Desk & Admin) must never authenticate via passwordless OTP
-  const existingUser = await User.findOne({ phone });
+  const existingUser = await User.findOne({ phone }).select('role').lean();
   if (existingUser && existingUser.role !== 'RETAILER') {
     res.status(403).json({
       success: false,
@@ -241,7 +256,7 @@ export const verifyOtp = async (req: AuthenticatedRequest, res: Response): Promi
     return;
   }
 
-  let user = await User.findOne({ phone }).populate('retailerId');
+  let user: any = await User.findOne({ phone }).populate('retailerId').lean();
 
   // Strict Role Boundary: Never issue ADMIN or ORDER_DESK tokens via OTP
   if (user && user.role !== 'RETAILER') {
@@ -269,31 +284,38 @@ export const verifyOtp = async (req: AuthenticatedRequest, res: Response): Promi
   }
 
   if (!user) {
-    const retailer = await Retailer.create({
-      storeName: `Kirana Store (${phone.slice(-4)})`,
-      ownerName: 'Kirana Owner',
-      phone,
-      address: {
-        street: 'Main Road',
-        locality: 'Wright Town',
-        city: 'Jabalpur',
-        pincode: '482002',
-        state: 'Madhya Pradesh',
-      },
-      creditLimit: 25000,
-      outstandingBalance: 0,
-      creditStatus: 'GOOD',
-    });
+    const preGeneratedRetailerId = new mongoose.Types.ObjectId();
+    const [retailer, createdUser] = await Promise.all([
+      Retailer.create({
+        _id: preGeneratedRetailerId,
+        storeName: `Kirana Store (${phone.slice(-4)})`,
+        ownerName: 'Kirana Owner',
+        phone,
+        address: {
+          street: 'Main Road',
+          locality: 'Wright Town',
+          city: 'Jabalpur',
+          pincode: '482002',
+          state: 'Madhya Pradesh',
+        },
+        creditLimit: 25000,
+        outstandingBalance: 0,
+        creditStatus: 'GOOD',
+      }),
+      User.create({
+        name: 'Kirana Store Owner',
+        phone,
+        role: 'RETAILER',
+        status: 'ACTIVE',
+        retailerId: preGeneratedRetailerId,
+        authProvider: 'LOCAL',
+      }),
+    ]);
 
-    user = await User.create({
-      name: 'Kirana Store Owner',
-      phone,
-      role: 'RETAILER',
-      status: 'ACTIVE',
-      retailerId: retailer._id,
-      authProvider: 'LOCAL',
-    });
-    user.retailerId = retailer as any;
+    user = {
+      ...createdUser.toObject(),
+      retailerId: retailer,
+    };
   }
 
   const token = signToken({
@@ -335,7 +357,9 @@ export const googleAuth = async (req: AuthenticatedRequest, res: Response): Prom
       phone: '9826012345',
       role: 'RETAILER',
       status: 'ACTIVE',
-    }).populate('retailerId');
+    })
+      .populate('retailerId')
+      .lean();
 
     if (!demoRetailerUser) {
       res.status(404).json({ success: false, message: 'Demo retailer user not seeded.' });
@@ -380,6 +404,10 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
     return;
   }
 
+  const retailer = req.user.retailerId
+    ? await Retailer.findById(req.user.retailerId).lean()
+    : undefined;
+
   res.json({
     success: true,
     user: {
@@ -389,7 +417,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
       email: req.user.email,
       role: req.user.role,
       status: req.user.status,
-      retailer: req.user.retailerId,
+      retailer,
     },
   });
 };
